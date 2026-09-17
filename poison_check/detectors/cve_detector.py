@@ -29,6 +29,7 @@ from poison_check.core.scanner_base import RawScanData
 # Тот же safe-literal-факт getattr, что и в MLS-PKL-001 (детекторы одного слоя;
 # прецедент — AllowlistDetector использует _HARDCODED_BLOCKLIST из blocklist).
 from poison_check.detectors.blocklist_detector import _getattr_safe_literal
+from poison_check.i18n.loader import I18n
 
 logger = logging.getLogger(__name__)
 
@@ -75,6 +76,9 @@ class _CvePattern:
     confidence: Confidence
     references: list[_CveRef]
     remediation_ru: str
+    title_en: str = ""
+    description_en: str = ""
+    remediation_en: str = ""
     context_frameworks: frozenset[str] = field(default_factory=frozenset)
     # Дополнительный контекст для Issue.details
     extra_details: dict[str, Any] = field(default_factory=dict)
@@ -226,15 +230,27 @@ def _make_cve_issue(
         **pattern.extra_details,
     }
 
+    # Локализация текста находки: en, если запрошена локаль en и для правила есть
+    # перевод; иначе — русский (локаль по умолчанию). Обёртка CLI локализуется
+    # отдельно через i18n, а тексты правил живут в самом YAML (title/*_en и *_ru).
+    if I18n.get().locale == "en" and pattern.title_en:
+        message = pattern.title_en
+        why = pattern.description_en or pattern.description_ru
+        remediation = pattern.remediation_en or pattern.remediation_ru
+    else:
+        message = pattern.title_ru
+        why = pattern.description_ru
+        remediation = pattern.remediation_ru
+
     return Issue(
         code=code,
         severity=pattern.severity,
         confidence=pattern.confidence,
-        message=pattern.title_ru,
+        message=message,
         location=_find_location(raw_data, matched_globals),
         details=details,
-        why=pattern.description_ru,
-        remediation=pattern.remediation_ru,
+        why=why,
+        remediation=remediation,
         references=[Reference(type=r.type, id=r.id) for r in pattern.references],
         compliance_tags=[
             "owasp-ml:ml03",
@@ -287,6 +303,9 @@ def _parse_pattern(entry: dict[str, Any]) -> _CvePattern:
         confidence=Confidence(entry["confidence"]),
         references=refs,
         remediation_ru=str(entry["remediation_ru"]),
+        title_en=str(entry.get("title", "")),
+        description_en=str(entry.get("description_en", "")),
+        remediation_en=str(entry.get("remediation_en", "")),
         context_frameworks=context_frameworks,
     )
 

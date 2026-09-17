@@ -4,8 +4,17 @@
 # Обновляется независимо от кода.
 
 - id: "CVE-2025-32434"
-  title: "PyTorch arbitrary code execution via torch.load"
+  title: "PyTorch legacy pickle format: potential RCE on torch.load (CVE-2025-32434)"
   title_ru: "Pickle-формат PyTorch: потенциальный RCE при загрузке через torch.load"
+  description_en: >-
+    The file uses the legacy PyTorch pickle format. CVE-2025-32434: torch.load() without
+    weights_only=True executes arbitrary code during deserialization. This is an
+    informational note about the file format — the mere presence of torch._utils does not by
+    itself mean the model is malicious. Actual attacks are reported by dedicated detectors
+    (os.system, subprocess, eval, etc.).
+  remediation_en: >-
+    Load the model with torch.load(..., weights_only=True) or convert it to safetensors.
+    Upgrade PyTorch to 2.6.0 or later.
   description_ru: >-
     Файл сохранён в формате pickle (legacy PyTorch). CVE-2025-32434: torch.load()
     без параметра weights_only=True выполняет произвольный код при десериализации.
@@ -28,8 +37,16 @@
     переведите модель в формат safetensors. Обновите PyTorch до версии 2.6.0+.
 
 - id: "PATTERN-OS-SYSTEM"
-  title: "OS command execution via pickle deserialization"
+  title: "os.system/os.popen call detected in pickle stream"
   title_ru: "Обнаружен вызов os.system/os.popen в потоке pickle"
+  description_en: >-
+    The pickle stream contains a call to os.system or os.popen, which allows executing
+    arbitrary operating-system commands when the file is loaded. This is a classic RCE
+    (Remote Code Execution) vector through ML files, observed in real malicious models on
+    HuggingFace (ReversingLabs report, 2023).
+  remediation_en: >-
+    Do not load this file. Ask the source for a safetensors or ONNX file. Verify the model's
+    origin for signs of compromise.
   description_ru: >-
     Pickle-файл содержит вызов os.system или os.popen, что позволяет выполнять
     произвольные команды операционной системы при загрузке файла. Это классический
@@ -57,8 +74,16 @@
     или ONNX. Проверьте источник загрузки модели на предмет компрометации.
 
 - id: "PATTERN-SUBPROCESS"
-  title: "Subprocess execution via pickle deserialization"
+  title: "subprocess (Popen/call/run) call detected in pickle stream"
   title_ru: "Обнаружен вызов subprocess (Popen/call/run) в потоке pickle"
+  description_en: >-
+    The pickle stream contains calls to the subprocess module (Popen, call, run,
+    check_output), which allows spawning arbitrary processes when the file is loaded. This
+    is equivalent to full RCE — an attacker can run any program under the identity of the
+    process loading the model.
+  remediation_en: >-
+    Do not load this file. ML models must not reference subprocess. Switch to safetensors
+    for storing neural-network weights.
   description_ru: >-
     Pickle-файл содержит вызовы модуля subprocess (Popen, call, run, check_output),
     что позволяет запускать произвольные процессы при загрузке файла. Эквивалентно
@@ -88,8 +113,16 @@
     Переключитесь на safetensors для хранения весов нейронных сетей.
 
 - id: "PATTERN-BUILTINS-EVAL"
-  title: "Code evaluation via builtins.eval in pickle"
+  title: "builtins.eval call detected in pickle stream"
   title_ru: "Обнаружен вызов builtins.eval в потоке pickle"
+  description_en: >-
+    The pickle stream contains a call to builtins.eval — a function that executes arbitrary
+    Python code from a string. An attacker supplies any Python code to run when the model
+    loads. eval in an ML file is a clear sign of malicious intent — legitimate models do not
+    use eval during deserialization.
+  remediation_en: >-
+    The file is clearly malicious. Do not load it. Report the RCE attempt via an ML file to
+    your information-security team.
   description_ru: >-
     Pickle-файл содержит вызов builtins.eval — функции, выполняющей произвольный
     Python-код из строки. Атакующий передаёт любой Python-код для исполнения при
@@ -113,8 +146,15 @@
     безопасности о попытке RCE-атаки через ML-файл.
 
 - id: "PATTERN-BUILTINS-EXEC"
-  title: "Code execution via builtins.exec in pickle"
+  title: "builtins.exec call detected in pickle stream"
   title_ru: "Обнаружен вызов builtins.exec в потоке pickle"
+  description_en: >-
+    The pickle stream contains a call to builtins.exec — a function that executes arbitrary
+    Python code. Unlike eval, exec can run multi-line code and define functions and classes.
+    It is used in advanced pickle attacks to deploy a full backdoor when the model loads.
+  remediation_en: >-
+    The file is clearly malicious. Do not load it. Isolate the file, perform forensic
+    analysis, and report it to your information-security team.
   description_ru: >-
     Pickle-файл содержит вызов builtins.exec — функции, выполняющей произвольный
     Python-код. В отличие от eval, exec позволяет выполнять многострочный код,
@@ -138,8 +178,16 @@
     forensics-анализ. Сообщите в службу информационной безопасности.
 
 - id: "PATTERN-DILL-BYPASS"
-  title: "PyTorch weights_only=True bypass via dill code object reconstruction"
+  title: "dill code-object reconstruction detected (weights_only=True bypass)"
   title_ru: "Обход weights_only=True через восстановление code-объекта из dill"
+  description_en: >-
+    dill._dill._create_code can build Python code objects from serialized data — a known
+    technique for bypassing torch.load(..., weights_only=True). After reconstructing a code
+    object, the attacker runs it via exec or eval, achieving full RCE even with weights_only
+    enabled. Exploitable in PyTorch prior to the 2026 patch.
+  remediation_en: >-
+    Upgrade PyTorch to the latest version and do not use dill to serialize ML models.
+    Convert the model to safetensors. Add PATTERN-DILL-BYPASS to your CI/CD blocklist.
   description_ru: >-
     dill._dill._create_code позволяет создавать Python code-объекты из сериализованных
     данных, что является известным методом обхода защиты torch.load(..., weights_only=True).
@@ -167,6 +215,15 @@
 - id: "GHSA-83PF-V6QQ-PWMR"
   title: "fickling lazy AST scanner bypass via ftplib/smtplib __init__ execution"
   title_ru: "Обход lazy AST сканера fickling через код в __init__ ftplib/smtplib"
+  description_en: >-
+    GHSA-83pf-v6qq-pwmr (February 2026): an attacker bypasses fickling's lazy AST analyzer
+    using ftplib.FTP or smtplib.SMTP, whose __init__ methods open network connections on
+    object initialization. A pickle REDUCE + ftplib.FTP invokes FTP.__init__ with attacker-
+    controlled arguments, evading static-analysis heuristics. These globals must never
+    appear in an ML model.
+  remediation_en: >-
+    ftplib and smtplib must not appear in an ML model. Their presence indicates a malicious
+    file or a tool bypassing security controls. Do not load the file.
   description_ru: >-
     GHSA-83pf-v6qq-pwmr (февраль 2026): атакующий обходит lazy AST-анализатор
     fickling, используя ftplib.FTP или smtplib.SMTP, методы __init__ которых
@@ -191,8 +248,18 @@
     файла или инструментального обхода средств защиты. Не загружайте файл.
 
 - id: "PATTERN-NUMPY-FROMPYFUNC"
-  title: "Arbitrary Python callable execution via numpy.frompyfunc in pickle"
+  title: "numpy.frompyfunc call detected in pickle stream"
   title_ru: "Обнаружен вызов numpy.frompyfunc в потоке pickle"
+  description_en: >-
+    numpy.frompyfunc serializes an arbitrary Python callable as a numpy ufunc. It is used in
+    numpy object-array RCE attacks: the attacker builds a numpy array with object dtype
+    containing an object with a malicious __reduce__, then saves it to .npy/.npz. On load,
+    numpy deserializes the objects' pickle stream. numpy.frompyfunc in a serialized file is
+    atypical of legitimate ML models.
+  remediation_en: >-
+    numpy.frompyfunc should not appear in serialized ML models. Verify the file's origin.
+    Request the model be re-saved as safetensors, or as .npy with a dtype that excludes
+    arbitrary Python objects.
   description_ru: >-
     numpy.frompyfunc сериализует произвольный Python callable как numpy ufunc.
     Используется в атаках через numpy object array RCE: злоумышленник создаёт
@@ -214,8 +281,18 @@
     с dtype, исключающим произвольные Python-объекты.
 
 - id: "PATTERN-CLOUDPICKLE-FUNCTION"
-  title: "Arbitrary Python function deserialization via cloudpickle in joblib"
+  title: "cloudpickle function-reconstruction gadget detected in joblib"
   title_ru: "Десериализация произвольной Python-функции через cloudpickle в joblib"
+  description_en: >-
+    cloudpickle._make_skel_func and _make_function reconstruct arbitrary Python functions
+    from bytecode. joblib uses them to serialize closures and lambdas, but they can equally
+    execute arbitrary code when a joblib file from an untrusted source is loaded. The
+    presence of cloudpickle means the model contains executable Python code, not just
+    weights.
+  remediation_en: >-
+    Do not load joblib files carrying arbitrary Python functions from untrusted sources. Use
+    safetensors or ONNX for ML models. If functions must be shipped, use safe formats (ONNX
+    custom ops).
   description_ru: >-
     cloudpickle._make_skel_func и _make_function воссоздают произвольные Python-функции
     из байт-кода. Эти функции используются joblib при сериализации closures и лямбд,
@@ -239,8 +316,16 @@
     При необходимости передавать функции используйте безопасные форматы (ONNX custom ops).
 
 - id: "PATTERN-CTYPES-EXEC"
-  title: "Shared library loading via ctypes (STACK_GLOBAL + REDUCE pattern)"
+  title: "ctypes shared-library load detected in pickle stream"
   title_ru: "Загрузка разделяемой библиотеки через ctypes (паттерн STACK_GLOBAL + REDUCE)"
+  description_en: >-
+    ctypes.CDLL loads an arbitrary shared library (.so/.dll) and executes machine code.
+    Inside a pickle file this allows running shellcode or loading a malicious library when
+    the ML model loads. The pattern uses STACK_GLOBAL + REDUCE to invoke ctypes dynamically;
+    it has no assigned CVE id but is critically dangerous.
+  remediation_en: >-
+    ctypes in an ML model is a clear sign of malicious code. Do not load the file. Isolate
+    it, perform forensic analysis, and report it to your information-security team.
   description_ru: >-
     ctypes.CDLL загружает произвольную разделяемую библиотеку (.so/.dll) и выполняет
     машинный код. В контексте pickle-файла это позволяет выполнить shellcode или
@@ -266,8 +351,16 @@
     информационной безопасности.
 
 - id: "PATTERN-BUILTINS-INDIRECT-IMPORT"
-  title: "Indirect RCE via builtins.__import__ + getattr chain in pickle"
+  title: "builtins.__import__ + getattr chain detected in pickle stream"
   title_ru: "Обнаружена цепочка builtins.__import__ + getattr в потоке pickle"
+  description_en: >-
+    The pickle stream contains builtins.__import__ or builtins.getattr — key components of
+    an indirect RCE chain: __import__('os') -> getattr(os_mod, 'system') -> system('cmd').
+    This technique evades naive detectors that only check for direct os.system calls. Real
+    attacks use it to bypass protections such as weights_only=True and shallow scanners.
+  remediation_en: >-
+    ML models must not contain dynamic imports or reflection via builtins. Convert the model
+    to safetensors or ONNX. Verify the model's origin.
   description_ru: >-
     Pickle-файл содержит вызов builtins.__import__ или builtins.getattr — ключевых
     компонентов indirect RCE-цепочки: __import__('os') → getattr(os_mod, 'system') →
@@ -298,8 +391,19 @@
 # ---------------------------------------------------------------------------
 
 - id: "PATTERN-PANDAS-READ-PICKLE"
-  title: "Nested pickle deserialization via pandas.read_pickle gadget"
+  title: "pandas.read_pickle gadget detected (nested pickle load)"
   title_ru: "Вложенная десериализация pickle через гаджет pandas.read_pickle"
+  description_en: >-
+    pandas.read_pickle loads and deserializes a pickle from a file or URL — equivalent to
+    pickle.load() and leading to arbitrary code execution (RCE). It is used as an allowlist-
+    bypass gadget: pandas itself may be trusted, but read_pickle can pull in a second,
+    malicious pickle from an arbitrary source (including over the network). Observed in
+    2024-2025 incidents with HuggingFace models. Legitimate models do not serialize a
+    read_pickle call — its presence indicates a hidden payload load.
+  remediation_en: >-
+    Do not load this file. pandas.read_pickle inside a serialized model is a sign of a
+    nested pickle attack. Request the model as safetensors and check the source for
+    compromise.
   description_ru: >-
     pandas.read_pickle загружает и десериализует pickle из файла или URL, что
     эквивалентно вызову pickle.load() и приводит к выполнению произвольного кода
@@ -327,8 +431,18 @@
     проверьте источник на предмет компрометации.
 
 - id: "PATTERN-BDB-PDB-RUN"
-  title: "Arbitrary code execution via bdb/pdb debugger run gadget"
+  title: "bdb/pdb debugger (Bdb.run) gadget detected in pickle stream"
   title_ru: "Обнаружен вызов отладчика bdb/pdb (Bdb.run) в потоке pickle"
+  description_en: >-
+    bdb.Bdb.run and pdb.Pdb.run (as well as run/runeval/runcall) take a string or code
+    object and execute it via exec() inside the debugger. In pickle this is a full RCE
+    gadget: a REDUCE invokes Bdb.run('malicious code'). bdb and pdb are part of the standard
+    library, so the attack needs no third-party dependencies and evades detectors looking
+    only for os.system/eval/exec. These globals must never appear in an ML model.
+  remediation_en: >-
+    The file is malicious: bdb/pdb debugging functions in a serialized model serve only to
+    execute code. Do not load the file; isolate it and report it to your information-
+    security team.
   description_ru: >-
     Методы bdb.Bdb.run и pdb.Pdb.run (а также run/runeval/runcall) принимают строку
     или code-объект и исполняют её через exec() внутри отладчика. В pickle это
@@ -365,8 +479,17 @@
     службу информационной безопасности.
 
 - id: "PATTERN-ASTEVAL-INTERP"
-  title: "Code evaluation via asteval.Interpreter"
+  title: "asteval.Interpreter call detected in pickle stream"
   title_ru: "Обнаружен вызов asteval.Interpreter в потоке pickle"
+  description_en: >-
+    asteval is an expression-evaluation library; the asteval.Interpreter object executes
+    supplied Python code when called. Although asteval markets itself as a 'safe' eval,
+    sandbox escapes are known (access to __class__/__subclasses__). The presence of
+    Interpreter in a serialized model indicates an attempt to execute arbitrary code during
+    deserialization.
+  remediation_en: >-
+    asteval.Interpreter should not appear in a serialized ML model. Verify the file's origin
+    and request the model be re-saved as safetensors.
   description_ru: >-
     asteval — библиотека вычисления выражений; объект asteval.Interpreter при вызове
     исполняет переданный Python-код. Хотя asteval позиционируется как «безопасный»
@@ -391,8 +514,17 @@
     источник файла и запросите пересохранение модели в формате safetensors.
 
 - id: "PATTERN-RUNPY-EXEC"
-  title: "Arbitrary code execution via runpy module gadget"
+  title: "runpy (_run_code/_run_module_code) gadget detected in pickle stream"
   title_ru: "Обнаружен вызов runpy (_run_code/_run_module_code) в потоке pickle"
+  description_en: >-
+    runpy._run_code and runpy._run_module_code execute a module's code in a given namespace
+    (equivalent to exec), while runpy.run_path/run_module run an arbitrary .py file or
+    module. In pickle this is an RCE gadget that bypasses naive detectors of direct
+    os.system/eval calls. The runpy module is part of the standard library — the attack
+    needs no third-party dependencies.
+  remediation_en: >-
+    runpy functions in a serialized model serve only to execute code. Do not load the file.
+    Convert the model to safetensors or ONNX and verify the source.
   description_ru: >-
     runpy._run_code и runpy._run_module_code исполняют код модуля в заданном
     пространстве имён (эквивалент exec), а runpy.run_path/run_module запускают
@@ -423,8 +555,19 @@
     загружайте файл. Переведите модель на safetensors или ONNX и проверьте источник.
 
 - id: "PATTERN-TORCH-HUB"
-  title: "Remote code download and execution via torch.hub"
+  title: "torch.hub call detected in pickle stream (remote code download)"
   title_ru: "Обнаружено обращение к torch.hub в потоке pickle (загрузка удалённого кода)"
+  description_en: >-
+    torch.hub.load downloads a GitHub repository and executes its hubconf.py, resulting in
+    arbitrary remote code execution. torch.hub.load_state_dict_from_url,
+    download_url_to_file, and _load_local fetch files from the network. A serialized model
+    must not contain these calls: they are simultaneously an RCE vector and a call to
+    external infrastructure (a potential C2 channel), breaking the offline-isolation
+    requirement for the banking and government sectors.
+  remediation_en: >-
+    torch.hub in a serialized model downloads and executes code from the network. Do not
+    load the file inside an isolated perimeter. Use safetensors and obtain weights only from
+    a trusted offline source.
   description_ru: >-
     torch.hub.load скачивает GitHub-репозиторий и исполняет его hubconf.py, что
     приводит к выполнению произвольного удалённого кода. torch.hub.load_state_dict_from_url,
