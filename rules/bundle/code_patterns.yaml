@@ -1,0 +1,104 @@
+# Паттерны Уровня 2 для детектора комплекта модели (BundleCodeDetector).
+#
+# Смысл: это конструкции, срабатывающие ПРИ ЗАГРУЗКЕ комплекта модели через
+# механизм Hugging Face trust_remote_code (config.json → auto_map /
+# custom_pipeline → локальный .py импортируется и исполняется).
+#
+# Поле `class` задаёт СМЫСЛ вызова и, вместе с позицией узла, — severity
+# (MLS-BUNDLE-002):
+#   - class: code-exec  — захват выполнения (exec/eval/compile/subprocess/
+#     os.system/os.popen/pickle.loads). В ЗАГРУЗОЧНОЙ точке → HIGH, в обычном
+#     методе → INFO.
+#   - class: side-effect — сетевой/ФС/нативный побочный эффект (socket/urllib/
+#     requests/http.client/ctypes). В ЗАГРУЗОЧНОЙ точке → LOW (факт «модель
+#     делает сетевой/файловый вызов при загрузке — проверьте», НЕ вердикт
+#     «обнаружено вредоносное»), в обычном методе → INFO. НЕ HIGH: побочный
+#     эффект — законный сигнал, но не захват выполнения.
+# Калибровка по прогону top-1000: 5 легитимных OCR-моделей с `requests` в
+# загрузочном коде давали ложный HIGH — теперь LOW.
+#
+# ПОЛИТИКИ (fail_on_severity): default=critical, banking=high, government=high,
+# strict=medium. LOW ниже порога ЛЮБОЙ из них — side-effect в загрузочной точке
+# больше НЕ роняет гейт (exit 0), в т.ч. под strict, но остаётся ВИДИМЫМ в
+# отчёте (LOW не подавляется). Промежуточный шаг HIGH→MEDIUM закрывал только
+# default/banking/government, но strict гейтит ровно по medium — поэтому для
+# полного снятия блокировки под всеми политиками выбран LOW. code-exec в
+# загрузочной точке остаётся HIGH (это захват выполнения, не побочный эффект).
+#
+# ГРАНИЦА (non-goal): мы репортим ФАКТ присутствия паттерна, а НЕ доказываем
+# вредоносность. Data-flow анализа нет. Список правится ОДНОЙ правкой этого
+# файла — владелец выверяет и при необходимости сокращает.
+#
+# Сопоставление (BundleScanner извлекает из AST имена вызовов/импортов/атрибутов
+# как dotted-строки; BundleCodeDetector матчит их против targets):
+#   - точное совпадение имени с target, ЛИБО
+#   - имя начинается с "target." (префиксный матч для модулей: subprocess.run,
+#     socket.socket, urllib.request.urlopen — все ловятся target'ом модуля).
+# Поэтому для модулей (subprocess/socket/urllib/…) target — имя модуля, а для
+# конкретных функций (os.system/os.popen/os.environ) — полное dotted-имя, чтобы
+# НЕ ловить безобидный os.path.join.
+
+version: 1
+
+patterns:
+  # exec/eval/compile: совпадают И с прямым именем (exec(...)), И с косвенно
+  # разрешённым builtins.exec (getattr(builtins,"exec")). Спец-правило сканера:
+  # имя добавляется как совпадающее только при ЛИТЕРАЛЬНОМ аргументе; exec от
+  # НЕ-литерала уходит в сигнал обфускации (MLS-BUNDLE-004), не сюда.
+  - id: exec
+    targets: ["exec", "builtins.exec"]
+    description: "Выполнение произвольного Python-кода через exec"
+    class: code-exec
+  - id: eval
+    targets: ["eval", "builtins.eval"]
+    description: "Вычисление произвольного выражения через eval"
+    class: code-exec
+  - id: compile
+    targets: ["compile", "builtins.compile"]
+    description: "Компиляция произвольного кода через compile"
+    class: code-exec
+  # __import__ / importlib.import_module сами по себе НЕ опасны (import os — норма):
+  # с литеральным аргументом они разрешаются в конкретный модуль (детект 1), с
+  # не-литеральным — дают сигнал обфускации (детект 4). Отдельным паттерном не
+  # держим, чтобы не флагать легитимный динамический импорт.
+  - id: os-system
+    targets: ["os.system"]
+    description: "Запуск команды ОС через os.system"
+    class: code-exec
+  - id: os-popen
+    targets: ["os.popen"]
+    description: "Запуск команды ОС через os.popen"
+    class: code-exec
+  - id: subprocess
+    targets: ["subprocess"]
+    description: "Запуск внешнего процесса через subprocess.*"
+    class: code-exec
+  - id: socket
+    targets: ["socket"]
+    description: "Сетевое соединение через модуль socket"
+    class: side-effect
+  - id: urllib
+    targets: ["urllib"]
+    description: "Сетевой запрос через urllib"
+    class: side-effect
+  - id: requests
+    targets: ["requests"]
+    description: "Сетевой запрос через requests"
+    class: side-effect
+  - id: http-client
+    targets: ["http.client"]
+    description: "Сетевой запрос через http.client"
+    class: side-effect
+  # os.environ / os.getenv НАМЕРЕННО не включены: доступ к переменным окружения
+  # повсеместен в легитимных modeling.py (выбор устройства — os.environ.get(
+  # "CUDA_VISIBLE_DEVICES")). По политике «молчание для рутинного» (часть A) это
+  # НЕ детектируется вовсе — тихий INFO-шум обесценил бы вывод. Владелец может
+  # вернуть при необходимости.
+  - id: pickle-loads
+    targets: ["pickle.loads", "pickle.load", "_pickle.loads", "_pickle.load"]
+    description: "Десериализация pickle из внешних данных (вторичный RCE)"
+    class: code-exec
+  - id: ctypes
+    targets: ["ctypes"]
+    description: "Загрузка нативного кода / вызовы через ctypes"
+    class: side-effect

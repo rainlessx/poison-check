@@ -1,0 +1,593 @@
+framework: sklearn
+description: "Разрешённые глобалы для scikit-learn и joblib моделей"
+version: "1.2"
+trusted_prefixes:
+  - "sklearn."
+  - "joblib."
+  - "scipy."
+empirical_note: >
+  Обновлено по результатам эмпирического сканирования 17 sklearn моделей
+  (LogisticRegression, Ridge, Lasso, SGDClassifier, RandomForest, GradientBoosting,
+  ExtraTrees, DecisionTree, SVC, SVR, KNN, StandardScaler, MinMaxScaler,
+  LabelEncoder, PCA, KMeans, GaussianNB), сохранённых через joblib 1.5.3
+  и sklearn 1.x. Апрель 2026.
+globals:
+  # --- scikit-learn: базовые классы ---
+  - module: "sklearn.base"
+    name: "BaseEstimator"
+    reason: "Базовый класс всех sklearn-оценщиков"
+  - module: "sklearn.base"
+    name: "ClassifierMixin"
+    reason: "Миксин для классификаторов"
+  - module: "sklearn.base"
+    name: "RegressorMixin"
+    reason: "Миксин для регрессоров"
+  - module: "sklearn.base"
+    name: "TransformerMixin"
+    reason: "Миксин для трансформеров"
+  - module: "sklearn.base"
+    name: "ClusterMixin"
+    reason: "Миксин для кластеризаторов"
+
+  # --- sklearn.linear_model ---
+  - module: "sklearn.linear_model._base"
+    name: "LinearRegression"
+    reason: "Линейная регрессия"
+  - module: "sklearn.linear_model._logistic"
+    name: "LogisticRegression"
+    reason: "Логистическая регрессия"
+  - module: "sklearn.linear_model._ridge"
+    name: "Ridge"
+    reason: "Ridge регрессия"
+  - module: "sklearn.linear_model._ridge"
+    name: "RidgeClassifier"
+    reason: "Ridge классификатор"
+  - module: "sklearn.linear_model._coordinate_descent"
+    name: "Lasso"
+    reason: "Lasso регрессия"
+  - module: "sklearn.linear_model._coordinate_descent"
+    name: "ElasticNet"
+    reason: "ElasticNet регрессия"
+  - module: "sklearn.linear_model._stochastic_gradient"
+    name: "SGDClassifier"
+    reason: "SGD классификатор"
+  - module: "sklearn.linear_model._stochastic_gradient"
+    name: "SGDRegressor"
+    reason: "SGD регрессор"
+
+  # --- sklearn.ensemble ---
+  - module: "sklearn.ensemble._forest"
+    name: "RandomForestClassifier"
+    reason: "Случайный лес — классификатор"
+  - module: "sklearn.ensemble._forest"
+    name: "RandomForestRegressor"
+    reason: "Случайный лес — регрессор"
+  - module: "sklearn.ensemble._forest"
+    name: "ExtraTreesClassifier"
+    reason: "Крайне рандомизированные деревья"
+  - module: "sklearn.ensemble._gb"
+    name: "GradientBoostingClassifier"
+    reason: "Градиентный бустинг — классификатор"
+  - module: "sklearn.ensemble._gb"
+    name: "GradientBoostingRegressor"
+    reason: "Градиентный бустинг — регрессор"
+  - module: "sklearn.ensemble._weight_boosting"
+    name: "AdaBoostClassifier"
+    reason: "AdaBoost классификатор"
+
+  # --- sklearn.tree ---
+  - module: "sklearn.tree._classes"
+    name: "DecisionTreeClassifier"
+    reason: "Дерево решений — классификатор"
+  - module: "sklearn.tree._classes"
+    name: "DecisionTreeRegressor"
+    reason: "Дерево решений — регрессор"
+  - module: "sklearn.tree._tree"
+    name: "Tree"
+    reason: "Внутренняя Cython-структура дерева"
+
+  # --- sklearn.svm ---
+  - module: "sklearn.svm._classes"
+    name: "SVC"
+    reason: "Метод опорных векторов — классификатор"
+  - module: "sklearn.svm._classes"
+    name: "SVR"
+    reason: "Метод опорных векторов — регрессор"
+  - module: "sklearn.svm._classes"
+    name: "LinearSVC"
+    reason: "Линейный SVM"
+  - module: "sklearn.svm._classes"
+    name: "NuSVC"
+    reason: "Nu-SVM классификатор"
+  - module: "sklearn.svm._classes"
+    name: "NuSVR"
+    reason: "Nu-SVM регрессор"
+
+  # --- sklearn.neighbors ---
+  - module: "sklearn.neighbors._classification"
+    name: "KNeighborsClassifier"
+    reason: "KNN классификатор"
+  - module: "sklearn.neighbors._regression"
+    name: "KNeighborsRegressor"
+    reason: "KNN регрессор"
+  - module: "sklearn.neighbors._kd_tree"
+    name: "newObj"
+    reason: "Cython-конструктор KD-дерева — внутренний объект KNeighbors при pickle"
+  - module: "sklearn.neighbors._ball_tree"
+    name: "newObj"
+    reason: "Cython-конструктор Ball-дерева — внутренний объект KNeighbors при pickle"
+
+  # --- sklearn.preprocessing ---
+  - module: "sklearn.preprocessing._data"
+    name: "StandardScaler"
+    reason: "Стандартизация данных"
+  - module: "sklearn.preprocessing._data"
+    name: "MinMaxScaler"
+    reason: "Min-max нормализация"
+  - module: "sklearn.preprocessing._data"
+    name: "RobustScaler"
+    reason: "Робастная нормализация"
+  - module: "sklearn.preprocessing._label"
+    name: "LabelEncoder"
+    reason: "Кодирование меток"
+  - module: "sklearn.preprocessing._label"
+    name: "LabelBinarizer"
+    reason: "Бинаризация меток — используется внутри MLP для кодирования целевой переменной"
+  - module: "sklearn.preprocessing._label"
+    name: "MultiLabelBinarizer"
+    reason: "Мульти-метковая бинаризация — sklearn preprocessing"
+  - module: "sklearn.preprocessing._encoders"
+    name: "OneHotEncoder"
+    reason: "One-hot кодирование"
+
+  # --- sklearn.pipeline ---
+  - module: "sklearn.pipeline"
+    name: "Pipeline"
+    reason: "Пайплайн обработки данных"
+  - module: "sklearn.pipeline"
+    name: "FeatureUnion"
+    reason: "Объединение признаков"
+
+  # --- sklearn.decomposition ---
+  - module: "sklearn.decomposition._pca"
+    name: "PCA"
+    reason: "Метод главных компонент"
+  - module: "sklearn.decomposition._nmf"
+    name: "NMF"
+    reason: "Неотрицательная матричная факторизация"
+
+  # --- sklearn.cluster ---
+  - module: "sklearn.cluster._kmeans"
+    name: "KMeans"
+    reason: "K-средних кластеризация"
+  - module: "sklearn.cluster._dbscan"
+    name: "DBSCAN"
+    reason: "DBSCAN кластеризация"
+
+  # --- sklearn.naive_bayes ---
+  - module: "sklearn.naive_bayes"
+    name: "GaussianNB"
+    reason: "Наивный Байес с нормальным распределением"
+  - module: "sklearn.naive_bayes"
+    name: "MultinomialNB"
+    reason: "Наивный Байес с мультиномиальным распределением"
+  - module: "sklearn.naive_bayes"
+    name: "BernoulliNB"
+    reason: "Наивный Байес с распределением Бернулли"
+  - module: "sklearn.naive_bayes"
+    name: "ComplementNB"
+    reason: "Complement Naive Bayes — вариант для несбалансированных классов"
+
+  # --- sklearn.discriminant_analysis ---
+  - module: "sklearn.discriminant_analysis"
+    name: "LinearDiscriminantAnalysis"
+    reason: "Линейный дискриминантный анализ"
+  - module: "sklearn.discriminant_analysis"
+    name: "QuadraticDiscriminantAnalysis"
+    reason: "Квадратичный дискриминантный анализ"
+
+  # --- sklearn.linear_model (дополнительные) ---
+  - module: "sklearn.linear_model._bayes"
+    name: "BayesianRidge"
+    reason: "Байесовская Ridge-регрессия"
+  - module: "sklearn.linear_model._bayes"
+    name: "ARDRegression"
+    reason: "Автоматическое определение значимости признаков"
+  - module: "sklearn.linear_model._huber"
+    name: "HuberRegressor"
+    reason: "Робастная регрессия Хьюбера"
+  - module: "sklearn.linear_model._passive_aggressive"
+    name: "PassiveAggressiveClassifier"
+    reason: "Пассивно-агрессивный классификатор"
+  - module: "sklearn.linear_model._passive_aggressive"
+    name: "PassiveAggressiveRegressor"
+    reason: "Пассивно-агрессивный регрессор"
+  - module: "sklearn.linear_model._perceptron"
+    name: "Perceptron"
+    reason: "Персептрон — линейный классификатор"
+  - module: "sklearn.linear_model._quantile"
+    name: "QuantileRegressor"
+    reason: "Квантильная регрессия"
+
+  # --- sklearn.ensemble (дополнительные) ---
+  - module: "sklearn.ensemble._forest"
+    name: "ExtraTreesRegressor"
+    reason: "Крайне рандомизированные деревья — регрессор"
+  - module: "sklearn.ensemble._forest"
+    name: "RandomTreesEmbedding"
+    reason: "Случайные деревья для эмбеддингов"
+  - module: "sklearn.ensemble._bagging"
+    name: "BaggingClassifier"
+    reason: "Бэггинг-классификатор"
+  - module: "sklearn.ensemble._bagging"
+    name: "BaggingRegressor"
+    reason: "Бэггинг-регрессор"
+  - module: "sklearn.ensemble._voting"
+    name: "VotingClassifier"
+    reason: "Голосующий классификатор"
+  - module: "sklearn.ensemble._voting"
+    name: "VotingRegressor"
+    reason: "Голосующий регрессор"
+  - module: "sklearn.ensemble._iforest"
+    name: "IsolationForest"
+    reason: "Лес изоляции для обнаружения аномалий"
+  - module: "sklearn.ensemble._gb"
+    name: "GradientBoostingRegressor"
+    reason: "Градиентный бустинг — регрессор"
+
+  # --- sklearn.ensemble._hist_gradient_boosting ---
+  - module: "sklearn.ensemble._hist_gradient_boosting.gradient_boosting"
+    name: "HistGradientBoostingClassifier"
+    reason: "Гистограммный градиентный бустинг — классификатор"
+  - module: "sklearn.ensemble._hist_gradient_boosting.gradient_boosting"
+    name: "HistGradientBoostingRegressor"
+    reason: "Гистограммный градиентный бустинг — регрессор"
+  - module: "sklearn.ensemble._hist_gradient_boosting._predictor"
+    name: "TreePredictor"
+    reason: "Внутренний предиктор для HistGradientBoosting (sklearn < 1.4)"
+  - module: "sklearn.ensemble._hist_gradient_boosting.predictor"
+    name: "TreePredictor"
+    reason: "Внутренний предиктор для HistGradientBoosting (sklearn >= 1.4, модуль без _)"
+  - module: "sklearn.ensemble._hist_gradient_boosting.common"
+    name: "Y_DTYPE"
+    reason: "Внутренний dtype HistGradientBoosting"
+
+  # --- sklearn.neighbors (дополнительные) ---
+  - module: "sklearn.neighbors._lof"
+    name: "LocalOutlierFactor"
+    reason: "Локальный фактор выброса (LOF) — детектор аномалий"
+
+  # --- sklearn.covariance ---
+  - module: "sklearn.covariance._empirical_covariance_"
+    name: "EmpiricalCovariance"
+    reason: "Эмпирическая ковариационная матрица"
+  - module: "sklearn.covariance._shrunk_covariance"
+    name: "LedoitWolf"
+    reason: "Оценка ковариации методом Леду-Вольфа"
+
+  # --- sklearn.decomposition (дополнительные) ---
+  - module: "sklearn.decomposition._truncated_svd"
+    name: "TruncatedSVD"
+    reason: "Усечённое SVD-разложение"
+  - module: "sklearn.decomposition._fastica"
+    name: "FastICA"
+    reason: "Независимый компонентный анализ"
+
+  # --- sklearn internals ---
+  - module: "sklearn.utils._bunch"
+    name: "Bunch"
+    reason: "Словарь-контейнер данных sklearn"
+  - module: "sklearn.utils.validation"
+    name: "check_is_fitted"
+    reason: "Проверка fitted-состояния модели"
+
+  # --- numpy (обязательная зависимость sklearn) ---
+  - module: "numpy"
+    name: "ndarray"
+    reason: "Массив NumPy — основная структура данных sklearn"
+  - module: "numpy"
+    name: "dtype"
+    reason: "Тип данных NumPy"
+  - module: "numpy"
+    name: "float32"
+    reason: "float32 dtype"
+  - module: "numpy"
+    name: "float64"
+    reason: "float64 dtype — дефолт для sklearn"
+  - module: "numpy"
+    name: "int32"
+    reason: "int32 dtype"
+  - module: "numpy"
+    name: "int64"
+    reason: "int64 dtype"
+  - module: "numpy.core.multiarray"
+    name: "_reconstruct"
+    reason: "Внутренняя функция восстановления ndarray при pickle"
+  - module: "numpy.core.multiarray"
+    name: "scalar"
+    reason: "NumPy scalar — появляется в параметрах модели"
+  - module: "numpy"
+    name: "bool_"
+    reason: "NumPy bool dtype"
+  - module: "numpy"
+    name: "uint8"
+    reason: "uint8 dtype"
+
+  # --- scipy (используется в sklearn) ---
+  - module: "scipy.sparse._csr"
+    name: "csr_matrix"
+    reason: "Разреженная матрица CSR — используется в sklearn"
+  - module: "scipy.sparse._csc"
+    name: "csc_matrix"
+    reason: "Разреженная матрица CSC"
+  - module: "scipy.sparse._coo"
+    name: "coo_matrix"
+    reason: "Разреженная матрица COO"
+
+  # --- collections ---
+  - module: "collections"
+    name: "OrderedDict"
+    reason: "Упорядоченный словарь"
+
+  # --- _codecs ---
+  - module: "_codecs"
+    name: "encode"
+    reason: "Стандартная кодировка байт в pickle"
+
+  # --- builtins (безопасные примитивы) ---
+  - module: "builtins"
+    name: "set"
+    reason: "Встроенный тип set"
+  - module: "builtins"
+    name: "frozenset"
+    reason: "Встроенный неизменяемый set"
+
+  # --- joblib internals (эмпирически: freq=17/17 моделей) ---
+  - module: "joblib.numpy_pickle"
+    name: "NumpyArrayWrapper"
+    reason: "Обёртка joblib для numpy-массивов при сериализации — появляется в 100% joblib-моделей"
+    frequency: 17
+    seen_in:
+      - logistic_regression
+      - ridge
+      - random_forest
+      - gradient_boosting
+      - standard_scaler
+      - pipeline
+      - svc
+      - svr
+      - knn
+      - decision_tree
+      - extra_trees
+      - lasso
+      - sgd_classifier
+      - gaussian_nb
+      - kmeans
+      - pca
+      - label_encoder
+
+  # --- joblib artifact: dtype.dtype (freq=14/17) ---
+  - module: "dtype"
+    name: "dtype"
+    reason: "Артефакт joblib-сериализации numpy dtype — появляется в большинстве sklearn моделей"
+    frequency: 14
+    seen_in:
+      - decision_tree
+      - extra_trees
+      - gaussian_nb
+      - gradient_boosting
+      - knn
+      - lasso
+      - logistic_regression
+      - random_forest
+      - ridge
+      - sgd_classifier
+      - svc
+
+  # --- joblib artifact: subclass.ndarray (freq=3/17) ---
+  - module: "subclass"
+    name: "ndarray"
+    reason: "Артефакт joblib при сериализации numpy subclass — sklearn.tree internals"
+    frequency: 3
+    seen_in:
+      - kmeans
+      - standard_scaler
+      - svr
+
+  # --- numpy._core (NumPy >= 2.0 переименовал numpy.core → numpy._core) ---
+  - module: "numpy._core.multiarray"
+    name: "_reconstruct"
+    reason: "NumPy >= 2.0: перемещено из numpy.core.multiarray (обратная совместимость)"
+    frequency: 3
+    seen_in:
+      - gradient_boosting
+      - kmeans
+      - pca
+  - module: "numpy._core.multiarray"
+    name: "scalar"
+    reason: "NumPy >= 2.0: scalar при десериализации"
+    frequency: 3
+    seen_in:
+      - kmeans
+      - standard_scaler
+      - svr
+  - module: "numpy._core.numeric"
+    name: "_frombuffer"
+    reason: "NumPy >= 2.0: восстановление буфера"
+    frequency: 1
+    seen_in:
+      - gradient_boosting
+
+  # --- numpy.random (используется в GradientBoosting и RandomForest внутренностях) ---
+  - module: "numpy.random._mt19937"
+    name: "MT19937"
+    reason: "Mersenne Twister PRNG — используется внутри GradientBoosting"
+    frequency: 1
+    seen_in:
+      - gradient_boosting
+  - module: "numpy.random._pickle"
+    name: "__randomstate_ctor"
+    reason: "Конструктор random state при pickle — sklearn GradientBoosting"
+    frequency: 1
+    seen_in:
+      - gradient_boosting
+  - module: "numpy.random.bit_generator"
+    name: "__pyx_unpickle_SeedSequence"
+    reason: "Unpickle seed sequence — numpy random state в sklearn"
+    frequency: 1
+    seen_in:
+      - gradient_boosting
+
+  # --- sklearn._loss (sklearn >= 1.1 — внутренние классы функций потерь GradientBoosting) ---
+  - module: "sklearn._loss.link"
+    name: "LogitLink"
+    reason: "Функция связи логит — GradientBoostingClassifier (sklearn >= 1.1)"
+  - module: "sklearn._loss.link"
+    name: "IdentityLink"
+    reason: "Тождественная функция связи — GradientBoostingRegressor"
+  - module: "sklearn._loss.link"
+    name: "LogLink"
+    reason: "Логарифмическая функция связи — PoissonRegressor"
+  - module: "sklearn._loss.link"
+    name: "MultinomialLogit"
+    reason: "Функция связи мультиномиальной логистики — GradientBoostingClassifier для задач с несколькими классами"
+  - module: "sklearn._loss.loss"
+    name: "HalfBinomialLoss"
+    reason: "Функция потерь бинарной классификации — GradientBoostingClassifier"
+  - module: "sklearn._loss.loss"
+    name: "HalfSquaredError"
+    reason: "Функция потерь MSE — GradientBoostingRegressor"
+  - module: "sklearn._loss.loss"
+    name: "HalfPoissonLoss"
+    reason: "Функция потерь Пуассона — HistGradientBoosting"
+  - module: "sklearn._loss.loss"
+    name: "AbsoluteError"
+    reason: "MAE — HistGradientBoosting"
+  - module: "sklearn._loss.loss"
+    name: "HuberLoss"
+    reason: "Функция потерь Хьюбера — HistGradientBoosting"
+  - module: "sklearn._loss.loss"
+    name: "HalfMultinomialLoss"
+    reason: "Функция потерь мультиклассовой классификации — HistGradientBoosting"
+  - module: "sklearn.dummy"
+    name: "DummyClassifier"
+    reason: "Простой классификатор-заглушка — внутренний компонент GradientBoosting"
+  - module: "sklearn.dummy"
+    name: "DummyRegressor"
+    reason: "Простой регрессор-заглушка — внутренний компонент GradientBoosting"
+
+  # --- sklearn.neural_network ---
+  - module: "sklearn.neural_network._multilayer_perceptron"
+    name: "MLPClassifier"
+    reason: "Нейронная сеть — классификатор (Multi-layer Perceptron)"
+  - module: "sklearn.neural_network._multilayer_perceptron"
+    name: "MLPRegressor"
+    reason: "Нейронная сеть — регрессор (Multi-layer Perceptron)"
+  - module: "sklearn.neural_network._stochastic_optimizers"
+    name: "AdamOptimizer"
+    reason: "Оптимизатор Adam — хранится внутри MLP при pickle (состояние оптимизатора)"
+  - module: "sklearn.neural_network._stochastic_optimizers"
+    name: "SGDOptimizer"
+    reason: "Оптимизатор SGD — хранится внутри MLP при pickle"
+  - module: "sklearn.neural_network._rbm"
+    name: "BernoulliRBM"
+    reason: "Restricted Boltzmann Machine — sklearn.neural_network"
+
+  # --- sklearn.calibration ---
+  - module: "sklearn.calibration"
+    name: "CalibratedClassifierCV"
+    reason: "Калиброванный классификатор с кросс-валидацией"
+
+  # --- sklearn.multioutput ---
+  - module: "sklearn.multioutput"
+    name: "MultiOutputClassifier"
+    reason: "Мультивыходной классификатор — оборачивает базовый estimator"
+  - module: "sklearn.multioutput"
+    name: "MultiOutputRegressor"
+    reason: "Мультивыходной регрессор"
+
+  # --- sklearn.ensemble._stacking ---
+  - module: "sklearn.ensemble._stacking"
+    name: "StackingClassifier"
+    reason: "Стекинг-ансамбль классификаторов"
+  - module: "sklearn.ensemble._stacking"
+    name: "StackingRegressor"
+    reason: "Стекинг-ансамбль регрессоров"
+
+  # --- sklearn.feature_selection ---
+  - module: "sklearn.feature_selection._univariate_selection"
+    name: "SelectKBest"
+    reason: "Отбор K лучших признаков по статистике"
+  - module: "sklearn.feature_selection._univariate_selection"
+    name: "SelectPercentile"
+    reason: "Отбор процента признаков по статистике"
+  - module: "sklearn.feature_selection._univariate_selection"
+    name: "SelectFpr"
+    reason: "Отбор признаков по false positive rate"
+  - module: "sklearn.feature_selection._univariate_selection"
+    name: "SelectFdr"
+    reason: "Отбор признаков по false discovery rate"
+
+  # --- sklearn.preprocessing (дополнительные) ---
+  - module: "sklearn.preprocessing._data"
+    name: "PowerTransformer"
+    reason: "Степенное преобразование (Yeo-Johnson / Box-Cox)"
+  - module: "sklearn.preprocessing._data"
+    name: "Normalizer"
+    reason: "Нормализация строк матрицы (L1/L2/max)"
+  - module: "sklearn.preprocessing._data"
+    name: "QuantileTransformer"
+    reason: "Квантильное преобразование к равномерному / нормальному распределению"
+  - module: "sklearn.preprocessing._data"
+    name: "KernelCenterer"
+    reason: "Центрирование ядровой матрицы"
+
+  # --- sklearn.cross_decomposition ---
+  - module: "sklearn.cross_decomposition._pls"
+    name: "PLSRegression"
+    reason: "PLS-регрессия (Partial Least Squares)"
+  - module: "sklearn.cross_decomposition._pls"
+    name: "PLSCanonical"
+    reason: "Каноническая PLS-декомпозиция"
+  - module: "sklearn.cross_decomposition._pls"
+    name: "CCA"
+    reason: "Канонический корреляционный анализ"
+
+  # --- sklearn.linear_model (дополнительные) ---
+  - module: "sklearn.linear_model._theil_sen"
+    name: "TheilSenRegressor"
+    reason: "Робастная регрессия Тейла-Сена"
+  - module: "sklearn.linear_model._ransac"
+    name: "RANSACRegressor"
+    reason: "RANSAC — робастная регрессия на основе консенсуса выборок"
+
+  # --- sklearn.svm (дополнительные) ---
+  - module: "sklearn.svm._classes"
+    name: "OneClassSVM"
+    reason: "One-class SVM — детектор аномалий"
+
+  # --- sklearn.decomposition (дополнительные) ---
+  - module: "sklearn.decomposition._lda"
+    name: "LatentDirichletAllocation"
+    reason: "LDA — тематическое моделирование (Latent Dirichlet Allocation)"
+
+  # --- sklearn.ensemble._hist_gradient_boosting (дополнительные) ---
+  - module: "sklearn.ensemble._hist_gradient_boosting.binning"
+    name: "_BinMapper"
+    reason: "Внутренний маппер бинов для HistGradientBoosting"
+
+  # --- numpy.random (дополнительные PRNG — HistGradientBoosting и LDA) ---
+  - module: "numpy.random._pcg64"
+    name: "PCG64"
+    reason: "PCG64 PRNG — используется в HistGradientBoosting random_state"
+  - module: "numpy.random._pickle"
+    name: "__generator_ctor"
+    reason: "Конструктор Generator при pickle — HistGradientBoosting / LDA random_state"
+
+  # --- sklearn.tree (появляется в random_forest и extra_trees) ---
+  - module: "sklearn.tree._classes"
+    name: "ExtraTreeClassifier"
+    reason: "Базовый классификатор ExtraTrees (одно дерево)"
+    frequency: 1
+    seen_in:
+      - extra_trees

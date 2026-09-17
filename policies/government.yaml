@@ -1,0 +1,63 @@
+name: government
+description: "Политика для госструктур — акцент на соответствие ФСТЭК"
+
+# Все детекторы включены
+enabled_detectors:
+  - blocklist
+  - allowlist
+  - cve
+  - secrets
+  - network
+  - executable
+  - format_policy
+  - compression
+  - gguf_metadata
+  - numpy_metadata
+  - joblib_metadata
+  - keras
+  - bundle_code
+  - parse_error
+
+# Порог ВНИМАНИЯ низкий: подпороговыми помечаются только INFO-находки,
+# и то не все — факты уровня файла (непроверенный файл, parse-error,
+# бомба) под порог не уходят никогда.
+severity_threshold: low
+
+# HIGH и выше → exit code 1
+fail_on_severity: high
+
+# Акцент на российские регуляторные требования
+compliance:
+  - fstec
+  - gost_56939_2024
+  - owasp_ml
+
+# Дополнительные правила для государственного сектора.
+# ПРИМЕНЯЮТСЯ (enforced) все ключи, кроме require_model_signature.
+# Реестр точек применения — poison_check/policies.py (EXTRA_RULE_KEYS).
+extra_rules:
+  # [enforced] Любой внешний URL → HIGH (требования ФСТЭК к изолированным сетям).
+  # Реализация: NetworkDetector(escalate_external_urls=True), код MLS-NET-002.
+  no_external_urls: true
+  # [enforced] Непроверенный файл (нет обязательной зависимости для разбора
+  # формата) → HIGH вместо MEDIUM: приёмка по ФСТЭК не допускает файлов
+  # без заключения. Реализация: KerasThreatDetector(escalate_unverified=True),
+  # код MLS-KERAS-003.
+  no_unverified_files: true
+  # Дизайн проработан и зафиксирован: docs/design/model_signature.md
+  # (формат подписи, keystore, коды MLS-SIG-*, условия пересмотра — §9.3).
+  # [not enforced yet] Требовать подпись или хеш-верификацию модели.
+  # Правило пока не реализовано — значение игнорируется сканером.
+  require_model_signature: false
+  # [enforced] Максимальный допустимый размер файла модели (ГБ).
+  # Применяется, если не задан CLI-флаг --max-file-size (он приоритетнее).
+  max_file_size_gb: 100
+  # [enforced] Формат определяется по СОДЕРЖИМОМУ (magic-байты/структура), а не
+  # по расширению; расхождение → HIGH. Приёмка по ФСТЭК не допускает файлов,
+  # чьё имя обещает не то, что лежит внутри.
+  # Реализация: FormatPolicyDetector(strict_format_detection=True), MLS-FMT-001.
+  strict_format_detection: true
+  # [enforced] Допустимы только форматы, не исполняющие код при загрузке.
+  # pickle/joblib/PyTorch/Keras → HIGH даже при чистом содержимом.
+  # Реализация: FormatPolicyDetector(require_safetensors=True), код MLS-FMT-002.
+  require_safetensors: true

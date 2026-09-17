@@ -1,0 +1,358 @@
+framework: transformers
+description: "Разрешённые глобалы для моделей HuggingFace transformers / tokenizers / accelerate"
+version: "1.1"
+trusted_prefixes:
+  - "transformers."
+  - "torch."
+  - "tokenizers."
+  - "sentence_transformers."
+  - "peft."
+  - "accelerate."
+  - "numpy."
+empirical_note: >
+  Базовый набор для покрытия моделей HuggingFace transformers — самой
+  массовой ML-экосистемы. Включает классы из transformers.models.*
+  (наиболее популярные семейства: BERT, GPT-2, GPT-Neo, LLaMA, Mistral,
+  Falcon, Qwen, T5, BART, RoBERTa, DistilBERT, ALBERT, XLNet, DeBERTa,
+  Whisper, CLIP, ViT). Также покрыты tokenizers, accelerate, peft.
+
+  Аудит #28: до этого файла rules/allowlist/ содержал только pytorch,
+  sklearn, numpy. Любая HuggingFace-модель давала кучу false positive
+  по AllowlistDetector — `transformers.models.bert.modeling_bert.BertModel`
+  не в allowlist → MEDIUM Issue. Это ломало UX для основной аудитории
+  (ML-инженеров и пентестеров, проверяющих модели с HuggingFace).
+
+  Источники для калибровки: топ-50 моделей HF Hub по downloads (апрель 2026)
+  + русскоязычные fine-tunes (Saiga, Vikhr, ai-forever/ru* семейство).
+
+globals:
+  # ------------------------------------------------------------
+  # transformers.modeling_utils — базовые классы
+  # ------------------------------------------------------------
+  - module: "transformers.modeling_utils"
+    name: "PreTrainedModel"
+    reason: "Базовый класс всех моделей transformers"
+  - module: "transformers.configuration_utils"
+    name: "PretrainedConfig"
+    reason: "Базовая конфигурация моделей"
+  - module: "transformers.tokenization_utils"
+    name: "PreTrainedTokenizer"
+    reason: "Базовый Python-токенизатор"
+  - module: "transformers.tokenization_utils_fast"
+    name: "PreTrainedTokenizerFast"
+    reason: "Rust-based fast токенизатор"
+  - module: "transformers.tokenization_utils_base"
+    name: "BatchEncoding"
+    reason: "Контейнер batch'а после токенизации"
+  - module: "transformers.tokenization_utils_base"
+    name: "AddedToken"
+    reason: "Кастомный добавленный токен"
+  - module: "transformers.feature_extraction_utils"
+    name: "FeatureExtractionMixin"
+    reason: "Базовый extractor для image/audio фичей"
+  - module: "transformers.image_processing_utils"
+    name: "BaseImageProcessor"
+    reason: "Базовый процессор изображений"
+  - module: "transformers.processing_utils"
+    name: "ProcessorMixin"
+    reason: "Multimodal-процессор"
+  - module: "transformers.generation.configuration_utils"
+    name: "GenerationConfig"
+    reason: "Конфигурация генерации текста"
+
+  # ------------------------------------------------------------
+  # BERT family
+  # ------------------------------------------------------------
+  - module: "transformers.models.bert.modeling_bert"
+    name: "BertModel"
+    reason: "BERT base"
+  - module: "transformers.models.bert.modeling_bert"
+    name: "BertForSequenceClassification"
+    reason: "BERT для классификации"
+  - module: "transformers.models.bert.modeling_bert"
+    name: "BertForMaskedLM"
+    reason: "BERT MLM"
+  - module: "transformers.models.bert.modeling_bert"
+    name: "BertForQuestionAnswering"
+    reason: "BERT QA"
+  - module: "transformers.models.bert.modeling_bert"
+    name: "BertForTokenClassification"
+    reason: "BERT NER"
+  - module: "transformers.models.bert.configuration_bert"
+    name: "BertConfig"
+    reason: "BERT config"
+  - module: "transformers.models.bert.tokenization_bert"
+    name: "BertTokenizer"
+    reason: "BERT WordPiece tokenizer"
+
+  # ------------------------------------------------------------
+  # DistilBERT
+  # ------------------------------------------------------------
+  - module: "transformers.models.distilbert.modeling_distilbert"
+    name: "DistilBertModel"
+    reason: "DistilBERT"
+  - module: "transformers.models.distilbert.modeling_distilbert"
+    name: "DistilBertForSequenceClassification"
+    reason: "DistilBERT classification"
+  - module: "transformers.models.distilbert.configuration_distilbert"
+    name: "DistilBertConfig"
+    reason: "DistilBERT config"
+
+  # ------------------------------------------------------------
+  # RoBERTa
+  # ------------------------------------------------------------
+  - module: "transformers.models.roberta.modeling_roberta"
+    name: "RobertaModel"
+    reason: "RoBERTa"
+  - module: "transformers.models.roberta.modeling_roberta"
+    name: "RobertaForSequenceClassification"
+    reason: "RoBERTa classification"
+  - module: "transformers.models.roberta.modeling_roberta"
+    name: "RobertaForMaskedLM"
+    reason: "RoBERTa MLM"
+  - module: "transformers.models.roberta.configuration_roberta"
+    name: "RobertaConfig"
+    reason: "RoBERTa config"
+
+  # ------------------------------------------------------------
+  # GPT-2
+  # ------------------------------------------------------------
+  - module: "transformers.models.gpt2.modeling_gpt2"
+    name: "GPT2Model"
+    reason: "GPT-2"
+  - module: "transformers.models.gpt2.modeling_gpt2"
+    name: "GPT2LMHeadModel"
+    reason: "GPT-2 LM"
+  - module: "transformers.models.gpt2.configuration_gpt2"
+    name: "GPT2Config"
+    reason: "GPT-2 config"
+  - module: "transformers.models.gpt2.tokenization_gpt2"
+    name: "GPT2Tokenizer"
+    reason: "GPT-2 BPE tokenizer"
+
+  # ------------------------------------------------------------
+  # T5 / FLAN-T5
+  # ------------------------------------------------------------
+  - module: "transformers.models.t5.modeling_t5"
+    name: "T5Model"
+    reason: "T5 encoder-decoder"
+  - module: "transformers.models.t5.modeling_t5"
+    name: "T5ForConditionalGeneration"
+    reason: "T5 для seq2seq"
+  - module: "transformers.models.t5.configuration_t5"
+    name: "T5Config"
+    reason: "T5 config"
+  - module: "transformers.models.t5.tokenization_t5"
+    name: "T5Tokenizer"
+    reason: "T5 SentencePiece tokenizer"
+
+  # ------------------------------------------------------------
+  # BART / mBART
+  # ------------------------------------------------------------
+  - module: "transformers.models.bart.modeling_bart"
+    name: "BartModel"
+    reason: "BART encoder-decoder"
+  - module: "transformers.models.bart.modeling_bart"
+    name: "BartForConditionalGeneration"
+    reason: "BART seq2seq"
+  - module: "transformers.models.bart.configuration_bart"
+    name: "BartConfig"
+    reason: "BART config"
+
+  # ------------------------------------------------------------
+  # ALBERT / XLNet / DeBERTa
+  # ------------------------------------------------------------
+  - module: "transformers.models.albert.modeling_albert"
+    name: "AlbertModel"
+    reason: "ALBERT"
+  - module: "transformers.models.xlnet.modeling_xlnet"
+    name: "XLNetModel"
+    reason: "XLNet"
+  - module: "transformers.models.deberta.modeling_deberta"
+    name: "DebertaModel"
+    reason: "DeBERTa"
+  - module: "transformers.models.deberta_v2.modeling_deberta_v2"
+    name: "DebertaV2Model"
+    reason: "DeBERTa v2"
+
+  # ------------------------------------------------------------
+  # LLaMA / LLaMA-2 / LLaMA-3
+  # ------------------------------------------------------------
+  - module: "transformers.models.llama.modeling_llama"
+    name: "LlamaModel"
+    reason: "LLaMA base"
+  - module: "transformers.models.llama.modeling_llama"
+    name: "LlamaForCausalLM"
+    reason: "LLaMA для генерации"
+  - module: "transformers.models.llama.configuration_llama"
+    name: "LlamaConfig"
+    reason: "LLaMA config"
+  - module: "transformers.models.llama.tokenization_llama"
+    name: "LlamaTokenizer"
+    reason: "LLaMA SentencePiece"
+  - module: "transformers.models.llama.tokenization_llama_fast"
+    name: "LlamaTokenizerFast"
+    reason: "LLaMA fast tokenizer"
+
+  # ------------------------------------------------------------
+  # Mistral / Mixtral
+  # ------------------------------------------------------------
+  - module: "transformers.models.mistral.modeling_mistral"
+    name: "MistralModel"
+    reason: "Mistral"
+  - module: "transformers.models.mistral.modeling_mistral"
+    name: "MistralForCausalLM"
+    reason: "Mistral для генерации"
+  - module: "transformers.models.mistral.configuration_mistral"
+    name: "MistralConfig"
+    reason: "Mistral config"
+  - module: "transformers.models.mixtral.modeling_mixtral"
+    name: "MixtralModel"
+    reason: "Mixtral MoE"
+  - module: "transformers.models.mixtral.modeling_mixtral"
+    name: "MixtralForCausalLM"
+    reason: "Mixtral causal LM"
+
+  # ------------------------------------------------------------
+  # Falcon
+  # ------------------------------------------------------------
+  - module: "transformers.models.falcon.modeling_falcon"
+    name: "FalconModel"
+    reason: "Falcon"
+  - module: "transformers.models.falcon.modeling_falcon"
+    name: "FalconForCausalLM"
+    reason: "Falcon LM"
+
+  # ------------------------------------------------------------
+  # Qwen / Qwen2
+  # ------------------------------------------------------------
+  - module: "transformers.models.qwen2.modeling_qwen2"
+    name: "Qwen2Model"
+    reason: "Qwen2"
+  - module: "transformers.models.qwen2.modeling_qwen2"
+    name: "Qwen2ForCausalLM"
+    reason: "Qwen2 LM"
+
+  # ------------------------------------------------------------
+  # GPT-Neo / GPT-NeoX / GPT-J
+  # ------------------------------------------------------------
+  - module: "transformers.models.gpt_neo.modeling_gpt_neo"
+    name: "GPTNeoModel"
+    reason: "GPT-Neo"
+  - module: "transformers.models.gpt_neo.modeling_gpt_neo"
+    name: "GPTNeoForCausalLM"
+    reason: "GPT-Neo LM"
+  - module: "transformers.models.gpt_neox.modeling_gpt_neox"
+    name: "GPTNeoXModel"
+    reason: "GPT-NeoX"
+  - module: "transformers.models.gpt_neox.modeling_gpt_neox"
+    name: "GPTNeoXForCausalLM"
+    reason: "GPT-NeoX LM"
+  - module: "transformers.models.gptj.modeling_gptj"
+    name: "GPTJModel"
+    reason: "GPT-J"
+  - module: "transformers.models.gptj.modeling_gptj"
+    name: "GPTJForCausalLM"
+    reason: "GPT-J LM"
+
+  # ------------------------------------------------------------
+  # Whisper (audio)
+  # ------------------------------------------------------------
+  - module: "transformers.models.whisper.modeling_whisper"
+    name: "WhisperModel"
+    reason: "Whisper ASR"
+  - module: "transformers.models.whisper.modeling_whisper"
+    name: "WhisperForConditionalGeneration"
+    reason: "Whisper для транскрипции"
+  - module: "transformers.models.whisper.configuration_whisper"
+    name: "WhisperConfig"
+    reason: "Whisper config"
+  - module: "transformers.models.whisper.tokenization_whisper"
+    name: "WhisperTokenizer"
+    reason: "Whisper tokenizer"
+  - module: "transformers.models.whisper.feature_extraction_whisper"
+    name: "WhisperFeatureExtractor"
+    reason: "Whisper аудиофичи"
+
+  # ------------------------------------------------------------
+  # CLIP / ViT (vision)
+  # ------------------------------------------------------------
+  - module: "transformers.models.clip.modeling_clip"
+    name: "CLIPModel"
+    reason: "CLIP multi-modal"
+  - module: "transformers.models.clip.modeling_clip"
+    name: "CLIPTextModel"
+    reason: "CLIP text encoder"
+  - module: "transformers.models.clip.modeling_clip"
+    name: "CLIPVisionModel"
+    reason: "CLIP vision encoder"
+  - module: "transformers.models.vit.modeling_vit"
+    name: "ViTModel"
+    reason: "Vision Transformer"
+  - module: "transformers.models.vit.modeling_vit"
+    name: "ViTForImageClassification"
+    reason: "ViT classification"
+
+  # ------------------------------------------------------------
+  # Sentence-Transformers / MiniLM
+  # ------------------------------------------------------------
+  - module: "sentence_transformers.SentenceTransformer"
+    name: "SentenceTransformer"
+    reason: "Sentence embeddings"
+  - module: "sentence_transformers.models.Transformer"
+    name: "Transformer"
+    reason: "ST transformer wrapper"
+  - module: "sentence_transformers.models.Pooling"
+    name: "Pooling"
+    reason: "Pooling-слой"
+  - module: "sentence_transformers.models.Normalize"
+    name: "Normalize"
+    reason: "L2 нормализация"
+
+  # ------------------------------------------------------------
+  # Tokenizers (HF Rust)
+  # ------------------------------------------------------------
+  - module: "tokenizers"
+    name: "Tokenizer"
+    reason: "Rust-based fast tokenizer"
+  - module: "tokenizers.models"
+    name: "BPE"
+    reason: "BPE-модель токенизатора"
+  - module: "tokenizers.models"
+    name: "WordPiece"
+    reason: "WordPiece"
+  - module: "tokenizers.models"
+    name: "Unigram"
+    reason: "SentencePiece Unigram"
+  - module: "tokenizers.normalizers"
+    name: "Sequence"
+    reason: "Композиция нормализаторов"
+  - module: "tokenizers.pre_tokenizers"
+    name: "ByteLevel"
+    reason: "Byte-level претокенизатор"
+
+  # ------------------------------------------------------------
+  # Accelerate (DeepSpeed / FSDP wrappers)
+  # ------------------------------------------------------------
+  - module: "accelerate.utils"
+    name: "DistributedType"
+    reason: "Тип распределённого обучения"
+  - module: "accelerate.state"
+    name: "AcceleratorState"
+    reason: "Состояние Accelerator"
+
+  # ------------------------------------------------------------
+  # PEFT (parameter-efficient fine-tuning)
+  # ------------------------------------------------------------
+  - module: "peft.peft_model"
+    name: "PeftModel"
+    reason: "PEFT обёртка"
+  - module: "peft.config"
+    name: "PeftConfig"
+    reason: "PEFT config"
+  - module: "peft.tuners.lora"
+    name: "LoraConfig"
+    reason: "LoRA конфигурация"
+  - module: "peft.tuners.lora.layer"
+    name: "Linear"
+    reason: "LoRA Linear-адаптер"

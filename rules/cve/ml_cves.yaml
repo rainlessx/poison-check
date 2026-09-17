@@ -1,0 +1,457 @@
+# ML Supply Chain Security — CVE и паттерны угроз
+# Формат: id, title, title_ru, description_ru, affected_globals,
+#          trigger_opcodes, severity, confidence, references, remediation_ru
+# Обновляется независимо от кода.
+
+- id: "CVE-2025-32434"
+  title: "PyTorch arbitrary code execution via torch.load"
+  title_ru: "Pickle-формат PyTorch: потенциальный RCE при загрузке через torch.load"
+  description_ru: >-
+    Файл сохранён в формате pickle (legacy PyTorch). CVE-2025-32434: torch.load()
+    без параметра weights_only=True выполняет произвольный код при десериализации.
+    Это информационное предупреждение о формате файла — само по себе наличие
+    torch._utils не означает вредоносности модели. Реальные атаки обнаруживаются
+    отдельными детекторами (os.system, subprocess, eval и т.д.).
+  affected_globals:
+    - module: "torch"
+      name: "_utils"
+  trigger_opcodes: ["REDUCE", "GLOBAL", "STACK_GLOBAL", "INST", "NEWOBJ", "NEWOBJ_EX"]
+  severity: "info"
+  confidence: "low"
+  references:
+    - type: "cve"
+      id: "CVE-2025-32434"
+    - type: "cwe"
+      id: "CWE-502"
+  remediation_ru: >-
+    При загрузке модели используйте torch.load(..., weights_only=True) или
+    переведите модель в формат safetensors. Обновите PyTorch до версии 2.6.0+.
+
+- id: "PATTERN-OS-SYSTEM"
+  title: "OS command execution via pickle deserialization"
+  title_ru: "Обнаружен вызов os.system/os.popen в потоке pickle"
+  description_ru: >-
+    Pickle-файл содержит вызов os.system или os.popen, что позволяет выполнять
+    произвольные команды операционной системы при загрузке файла. Это классический
+    вектор атаки RCE (Remote Code Execution) через ML-файлы. Обнаружен в реальных
+    вредоносных моделях на HuggingFace (отчёт ReversingLabs, 2023).
+  affected_globals:
+    - module: "os"
+      name: "system"
+    - module: "posix"
+      name: "system"
+    - module: "os"
+      name: "popen"
+    - module: "posix"
+      name: "popen"
+  trigger_opcodes: ["REDUCE", "GLOBAL", "STACK_GLOBAL", "INST", "NEWOBJ", "NEWOBJ_EX"]
+  severity: "critical"
+  confidence: "certain"
+  references:
+    - type: "cwe"
+      id: "CWE-502"
+    - type: "cwe"
+      id: "CWE-78"
+  remediation_ru: >-
+    Не загружайте этот файл. Запросите у источника файл в формате safetensors
+    или ONNX. Проверьте источник загрузки модели на предмет компрометации.
+
+- id: "PATTERN-SUBPROCESS"
+  title: "Subprocess execution via pickle deserialization"
+  title_ru: "Обнаружен вызов subprocess (Popen/call/run) в потоке pickle"
+  description_ru: >-
+    Pickle-файл содержит вызовы модуля subprocess (Popen, call, run, check_output),
+    что позволяет запускать произвольные процессы при загрузке файла. Эквивалентно
+    полноценному RCE — атакующий может запустить любую программу от имени процесса,
+    загружающего модель.
+  affected_globals:
+    - module: "subprocess"
+      name: "Popen"
+    - module: "subprocess"
+      name: "call"
+    - module: "subprocess"
+      name: "run"
+    - module: "subprocess"
+      name: "check_output"
+    - module: "subprocess"
+      name: "check_call"
+  trigger_opcodes: ["REDUCE", "GLOBAL", "STACK_GLOBAL", "INST", "NEWOBJ", "NEWOBJ_EX"]
+  severity: "critical"
+  confidence: "certain"
+  references:
+    - type: "cwe"
+      id: "CWE-502"
+    - type: "cwe"
+      id: "CWE-78"
+  remediation_ru: >-
+    Не загружайте этот файл. ML-модели не должны содержать ссылки на subprocess.
+    Переключитесь на safetensors для хранения весов нейронных сетей.
+
+- id: "PATTERN-BUILTINS-EVAL"
+  title: "Code evaluation via builtins.eval in pickle"
+  title_ru: "Обнаружен вызов builtins.eval в потоке pickle"
+  description_ru: >-
+    Pickle-файл содержит вызов builtins.eval — функции, выполняющей произвольный
+    Python-код из строки. Атакующий передаёт любой Python-код для исполнения при
+    загрузке модели. Функция eval в ML-файле является явным признаком вредоносного
+    умысла — легитимные модели не используют eval при десериализации.
+  affected_globals:
+    - module: "builtins"
+      name: "eval"
+    - module: "__builtin__"
+      name: "eval"
+  trigger_opcodes: ["REDUCE", "GLOBAL", "STACK_GLOBAL", "INST", "NEWOBJ", "NEWOBJ_EX"]
+  severity: "critical"
+  confidence: "certain"
+  references:
+    - type: "cwe"
+      id: "CWE-502"
+    - type: "cwe"
+      id: "CWE-95"
+  remediation_ru: >-
+    Файл явно вредоносен. Не загружайте его. Сообщите в службу информационной
+    безопасности о попытке RCE-атаки через ML-файл.
+
+- id: "PATTERN-BUILTINS-EXEC"
+  title: "Code execution via builtins.exec in pickle"
+  title_ru: "Обнаружен вызов builtins.exec в потоке pickle"
+  description_ru: >-
+    Pickle-файл содержит вызов builtins.exec — функции, выполняющей произвольный
+    Python-код. В отличие от eval, exec позволяет выполнять многострочный код,
+    определять функции и классы. Используется в продвинутых pickle-атаках для
+    развёртывания полноценного backdoor при загрузке модели.
+  affected_globals:
+    - module: "builtins"
+      name: "exec"
+    - module: "__builtin__"
+      name: "exec"
+  trigger_opcodes: ["REDUCE", "GLOBAL", "STACK_GLOBAL", "INST", "NEWOBJ", "NEWOBJ_EX"]
+  severity: "critical"
+  confidence: "certain"
+  references:
+    - type: "cwe"
+      id: "CWE-502"
+    - type: "cwe"
+      id: "CWE-95"
+  remediation_ru: >-
+    Файл явно вредоносен. Не загружайте его. Изолируйте файл и проведите
+    forensics-анализ. Сообщите в службу информационной безопасности.
+
+- id: "PATTERN-DILL-BYPASS"
+  title: "PyTorch weights_only=True bypass via dill code object reconstruction"
+  title_ru: "Обход weights_only=True через восстановление code-объекта из dill"
+  description_ru: >-
+    dill._dill._create_code позволяет создавать Python code-объекты из сериализованных
+    данных, что является известным методом обхода защиты torch.load(..., weights_only=True).
+    После создания code-объекта атакующий выполняет его через exec или eval, получая
+    полноценный RCE даже при включённом режиме weights_only. Эксплуатируется в PyTorch
+    до патча 2026 года.
+  affected_globals:
+    - module: "dill._dill"
+      name: "_create_code"
+    - module: "dill._dill"
+      name: "_create_function"
+  trigger_opcodes: ["REDUCE", "GLOBAL", "STACK_GLOBAL", "INST", "NEWOBJ", "NEWOBJ_EX"]
+  severity: "critical"
+  confidence: "certain"
+  references:
+    - type: "cwe"
+      id: "CWE-502"
+    - type: "cwe"
+      id: "CWE-693"
+  remediation_ru: >-
+    Обновите PyTorch до последней версии и не используйте dill для сериализации
+    ML-моделей. Переведите модель на safetensors. Добавьте PATTERN-DILL-BYPASS
+    в список блокировок вашего CI/CD пайплайна.
+
+- id: "GHSA-83PF-V6QQ-PWMR"
+  title: "fickling lazy AST scanner bypass via ftplib/smtplib __init__ execution"
+  title_ru: "Обход lazy AST сканера fickling через код в __init__ ftplib/smtplib"
+  description_ru: >-
+    GHSA-83pf-v6qq-pwmr (февраль 2026): атакующий обходит lazy AST-анализатор
+    fickling, используя ftplib.FTP или smtplib.SMTP, методы __init__ которых
+    выполняют сетевые соединения при инициализации объекта. Pickle REDUCE + ftplib.FTP
+    вызывает FTP.__init__ с аргументами атакующего, обходя эвристики статического
+    анализа. В ML-модели эти глобалы не должны присутствовать никогда.
+  affected_globals:
+    - module: "ftplib"
+      name: "FTP"
+    - module: "smtplib"
+      name: "SMTP"
+  trigger_opcodes: ["REDUCE", "GLOBAL", "STACK_GLOBAL", "INST", "NEWOBJ", "NEWOBJ_EX"]
+  severity: "high"
+  confidence: "high"
+  references:
+    - type: "cwe"
+      id: "CWE-502"
+    - type: "cwe"
+      id: "CWE-74"
+  remediation_ru: >-
+    ftplib и smtplib не должны присутствовать в ML-модели. Это признак вредоносного
+    файла или инструментального обхода средств защиты. Не загружайте файл.
+
+- id: "PATTERN-NUMPY-FROMPYFUNC"
+  title: "Arbitrary Python callable execution via numpy.frompyfunc in pickle"
+  title_ru: "Обнаружен вызов numpy.frompyfunc в потоке pickle"
+  description_ru: >-
+    numpy.frompyfunc сериализует произвольный Python callable как numpy ufunc.
+    Используется в атаках через numpy object array RCE: злоумышленник создаёт
+    numpy-массив с object dtype, содержащий объект с вредоносным __reduce__,
+    сохраняет в .npy/.npz. При загрузке numpy десериализует pickle-поток объектов.
+    numpy.frompyfunc в сериализованном файле нетипичен для легитимных ML-моделей.
+  affected_globals:
+    - module: "numpy"
+      name: "frompyfunc"
+  trigger_opcodes: ["REDUCE", "GLOBAL", "STACK_GLOBAL", "INST", "NEWOBJ", "NEWOBJ_EX"]
+  severity: "high"
+  confidence: "medium"
+  references:
+    - type: "cwe"
+      id: "CWE-502"
+  remediation_ru: >-
+    numpy.frompyfunc не должен встречаться в сериализованных ML-моделях. Проверьте
+    источник файла. Запросите пересохранение модели в формате safetensors или npy
+    с dtype, исключающим произвольные Python-объекты.
+
+- id: "PATTERN-CLOUDPICKLE-FUNCTION"
+  title: "Arbitrary Python function deserialization via cloudpickle in joblib"
+  title_ru: "Десериализация произвольной Python-функции через cloudpickle в joblib"
+  description_ru: >-
+    cloudpickle._make_skel_func и _make_function воссоздают произвольные Python-функции
+    из байт-кода. Эти функции используются joblib при сериализации closures и лямбд,
+    но также могут применяться для выполнения произвольного кода при загрузке
+    joblib-файла из ненадёжного источника. Наличие cloudpickle в ML-модели означает,
+    что модель содержит исполняемый Python-код, а не только веса.
+  affected_globals:
+    - module: "cloudpickle.cloudpickle"
+      name: "_make_skel_func"
+    - module: "cloudpickle.cloudpickle"
+      name: "_make_function"
+  trigger_opcodes: ["REDUCE", "GLOBAL", "STACK_GLOBAL", "INST", "NEWOBJ", "NEWOBJ_EX"]
+  severity: "high"
+  confidence: "medium"
+  references:
+    - type: "cwe"
+      id: "CWE-502"
+  remediation_ru: >-
+    Не загружайте joblib-файлы с произвольными Python-функциями из ненадёжных
+    источников. Используйте safetensors или ONNX для хранения ML-моделей.
+    При необходимости передавать функции используйте безопасные форматы (ONNX custom ops).
+
+- id: "PATTERN-CTYPES-EXEC"
+  title: "Shared library loading via ctypes (STACK_GLOBAL + REDUCE pattern)"
+  title_ru: "Загрузка разделяемой библиотеки через ctypes (паттерн STACK_GLOBAL + REDUCE)"
+  description_ru: >-
+    ctypes.CDLL загружает произвольную разделяемую библиотеку (.so/.dll) и выполняет
+    машинный код. В контексте pickle-файла это позволяет выполнить shellcode или
+    загрузить вредоносную библиотеку при загрузке ML-модели. Паттерн использует
+    STACK_GLOBAL + REDUCE для динамического вызова ctypes без известного CVE-идентификатора,
+    но с критической степенью опасности.
+  affected_globals:
+    - module: "ctypes"
+      name: "CDLL"
+    - module: "ctypes"
+      name: "cdll"
+  trigger_opcodes: ["REDUCE", "GLOBAL", "STACK_GLOBAL", "INST", "NEWOBJ", "NEWOBJ_EX"]
+  severity: "critical"
+  confidence: "high"
+  references:
+    - type: "cwe"
+      id: "CWE-502"
+    - type: "cwe"
+      id: "CWE-114"
+  remediation_ru: >-
+    ctypes в ML-модели является явным признаком вредоносного кода. Не загружайте
+    файл. Изолируйте его, проведите forensics-анализ и сообщите в службу
+    информационной безопасности.
+
+- id: "PATTERN-BUILTINS-INDIRECT-IMPORT"
+  title: "Indirect RCE via builtins.__import__ + getattr chain in pickle"
+  title_ru: "Обнаружена цепочка builtins.__import__ + getattr в потоке pickle"
+  description_ru: >-
+    Pickle-файл содержит вызов builtins.__import__ или builtins.getattr — ключевых
+    компонентов indirect RCE-цепочки: __import__('os') → getattr(os_mod, 'system') →
+    system('cmd'). Эта техника обходит наивные детекторы, проверяющие только прямые
+    вызовы os.system. В реальных атаках используется для обхода защит типа
+    weights_only=True и поверхностных сканеров.
+  affected_globals:
+    - module: "builtins"
+      name: "__import__"
+    - module: "builtins"
+      name: "getattr"
+  trigger_opcodes: ["REDUCE", "GLOBAL", "STACK_GLOBAL", "INST", "NEWOBJ", "NEWOBJ_EX"]
+  severity: "high"
+  confidence: "high"
+  references:
+    - type: "cwe"
+      id: "CWE-502"
+    - type: "cwe"
+      id: "CWE-470"
+  remediation_ru: >-
+    ML-модели не должны содержать динамический импорт или рефлексию через builtins.
+    Переведите модель на safetensors или ONNX. Проверьте источник модели.
+
+# ---------------------------------------------------------------------------
+# Gadget-модули по публичным инцидентам и отчётам 2024–2025 (ReversingLabs, HuggingFace).
+# Все они — «косвенные» гаджеты: сам глобал не выглядит как os.system, но при
+# вызове через REDUCE приводит к выполнению кода или загрузке внешнего payload.
+# ---------------------------------------------------------------------------
+
+- id: "PATTERN-PANDAS-READ-PICKLE"
+  title: "Nested pickle deserialization via pandas.read_pickle gadget"
+  title_ru: "Вложенная десериализация pickle через гаджет pandas.read_pickle"
+  description_ru: >-
+    pandas.read_pickle загружает и десериализует pickle из файла или URL, что
+    эквивалентно вызову pickle.load() и приводит к выполнению произвольного кода
+    (RCE). Применяется как гаджет обхода allowlist: сам pandas может быть в списке
+    доверенных, но read_pickle позволяет подтянуть второй, вредоносный pickle из
+    произвольного источника (в том числе по сети). Наблюдалось в инцидентах
+    2024–2025 с моделями на HuggingFace. Легитимные модели не сериализуют вызов
+    read_pickle — его наличие говорит о попытке скрытой загрузки payload.
+  affected_globals:
+    - module: "pandas"
+      name: "read_pickle"
+    - module: "pandas.io.pickle"
+      name: "read_pickle"
+  trigger_opcodes: ["REDUCE", "GLOBAL", "STACK_GLOBAL", "INST", "NEWOBJ", "NEWOBJ_EX"]
+  severity: "high"
+  confidence: "high"
+  references:
+    - type: "cwe"
+      id: "CWE-502"
+    - type: "cwe"
+      id: "CWE-94"
+  remediation_ru: >-
+    Не загружайте этот файл. pandas.read_pickle внутри сериализованной модели —
+    признак вложенной pickle-атаки. Запросите модель в формате safetensors и
+    проверьте источник на предмет компрометации.
+
+- id: "PATTERN-BDB-PDB-RUN"
+  title: "Arbitrary code execution via bdb/pdb debugger run gadget"
+  title_ru: "Обнаружен вызов отладчика bdb/pdb (Bdb.run) в потоке pickle"
+  description_ru: >-
+    Методы bdb.Bdb.run и pdb.Pdb.run (а также run/runeval/runcall) принимают строку
+    или code-объект и исполняют её через exec() внутри отладчика. В pickle это
+    полноценный гаджет RCE: REDUCE вызывает Bdb.run('вредоносный код'). Модули bdb и
+    pdb входят в стандартную библиотеку, поэтому атака не требует сторонних
+    зависимостей и обходит детекторы, ищущие только os.system/eval/exec. В
+    ML-модели этих глобалов не должно быть никогда.
+  affected_globals:
+    - module: "bdb"
+      name: "Bdb.run"
+    - module: "bdb"
+      name: "Bdb.runeval"
+    - module: "bdb"
+      name: "Bdb.runcall"
+    - module: "pdb"
+      name: "Pdb.run"
+    - module: "pdb"
+      name: "run"
+    - module: "pdb"
+      name: "runeval"
+    - module: "pdb"
+      name: "runcall"
+  trigger_opcodes: ["REDUCE", "GLOBAL", "STACK_GLOBAL", "INST", "NEWOBJ", "NEWOBJ_EX"]
+  severity: "high"
+  confidence: "high"
+  references:
+    - type: "cwe"
+      id: "CWE-502"
+    - type: "cwe"
+      id: "CWE-94"
+  remediation_ru: >-
+    Файл вредоносен: отладочные функции bdb/pdb в сериализованной модели служат
+    только для исполнения кода. Не загружайте файл, изолируйте его и сообщите в
+    службу информационной безопасности.
+
+- id: "PATTERN-ASTEVAL-INTERP"
+  title: "Code evaluation via asteval.Interpreter"
+  title_ru: "Обнаружен вызов asteval.Interpreter в потоке pickle"
+  description_ru: >-
+    asteval — библиотека вычисления выражений; объект asteval.Interpreter при вызове
+    исполняет переданный Python-код. Хотя asteval позиционируется как «безопасный»
+    eval, для него известны обходы песочницы (доступ к __class__/__subclasses__).
+    Наличие Interpreter в сериализованной модели — признак попытки выполнения
+    произвольного кода при десериализации.
+  affected_globals:
+    - module: "asteval"
+      name: "Interpreter"
+    - module: "asteval.asteval"
+      name: "Interpreter"
+  trigger_opcodes: ["REDUCE", "GLOBAL", "STACK_GLOBAL", "INST", "NEWOBJ", "NEWOBJ_EX"]
+  severity: "high"
+  confidence: "medium"
+  references:
+    - type: "cwe"
+      id: "CWE-502"
+    - type: "cwe"
+      id: "CWE-95"
+  remediation_ru: >-
+    asteval.Interpreter не должен встречаться в сериализованной ML-модели. Проверьте
+    источник файла и запросите пересохранение модели в формате safetensors.
+
+- id: "PATTERN-RUNPY-EXEC"
+  title: "Arbitrary code execution via runpy module gadget"
+  title_ru: "Обнаружен вызов runpy (_run_code/_run_module_code) в потоке pickle"
+  description_ru: >-
+    runpy._run_code и runpy._run_module_code исполняют код модуля в заданном
+    пространстве имён (эквивалент exec), а runpy.run_path/run_module запускают
+    произвольный .py-файл или модуль. В pickle это гаджет RCE, обходящий наивные
+    детекторы прямых вызовов os.system/eval. Модуль runpy входит в стандартную
+    библиотеку — атака не требует сторонних зависимостей.
+  affected_globals:
+    - module: "runpy"
+      name: "_run_code"
+    - module: "runpy"
+      name: "_run_module_code"
+    - module: "runpy"
+      name: "_run_module_as_main"
+    - module: "runpy"
+      name: "run_path"
+    - module: "runpy"
+      name: "run_module"
+  trigger_opcodes: ["REDUCE", "GLOBAL", "STACK_GLOBAL", "INST", "NEWOBJ", "NEWOBJ_EX"]
+  severity: "high"
+  confidence: "high"
+  references:
+    - type: "cwe"
+      id: "CWE-502"
+    - type: "cwe"
+      id: "CWE-94"
+  remediation_ru: >-
+    runpy-функции в сериализованной модели служат только для исполнения кода. Не
+    загружайте файл. Переведите модель на safetensors или ONNX и проверьте источник.
+
+- id: "PATTERN-TORCH-HUB"
+  title: "Remote code download and execution via torch.hub"
+  title_ru: "Обнаружено обращение к torch.hub в потоке pickle (загрузка удалённого кода)"
+  description_ru: >-
+    torch.hub.load скачивает GitHub-репозиторий и исполняет его hubconf.py, что
+    приводит к выполнению произвольного удалённого кода. torch.hub.load_state_dict_from_url,
+    download_url_to_file и _load_local загружают файлы из сети. В сериализованной
+    модели этих вызовов быть не должно: это одновременно вектор RCE и обращение к
+    внешней инфраструктуре (потенциальный C2-канал), нарушающее требование офлайн-
+    изоляции для банковского и государственного сектора.
+  affected_globals:
+    - module: "torch.hub"
+      name: "load"
+    - module: "torch.hub"
+      name: "load_state_dict_from_url"
+    - module: "torch.hub"
+      name: "download_url_to_file"
+    - module: "torch.hub"
+      name: "_load_local"
+  trigger_opcodes: ["REDUCE", "GLOBAL", "STACK_GLOBAL", "INST", "NEWOBJ", "NEWOBJ_EX"]
+  severity: "high"
+  confidence: "medium"
+  references:
+    - type: "cwe"
+      id: "CWE-502"
+    - type: "cwe"
+      id: "CWE-494"
+    - type: "cwe"
+      id: "CWE-829"
+  remediation_ru: >-
+    torch.hub в сериализованной модели загружает и исполняет код из сети. Не
+    загружайте файл в изолированном периметре. Используйте safetensors и получайте
+    веса только из доверенного офлайн-источника.

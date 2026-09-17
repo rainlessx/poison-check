@@ -1,0 +1,42 @@
+name: default
+description: "Стандартная политика — баланс между полнотой и уровнем шума"
+
+# Детекторы, включённые для этой политики
+enabled_detectors:
+  - blocklist
+  - allowlist
+  - cve
+  - secrets
+  - network
+  - executable
+  - format_policy
+  - compression
+  - gguf_metadata
+  - numpy_metadata
+  - joblib_metadata
+  - keras
+  - bundle_code
+  - parse_error
+
+# Порог ВНИМАНИЯ: находки ниже MEDIUM не скрываются, а помечаются
+# подпороговыми (console — отдельный блок, JSON — below_threshold,
+# SARIF — suppressions, SBOM — analysis.in_triage). На exit code не влияет.
+severity_threshold: medium
+
+# Завершать с exit code 1 начиная с этого уровня severity (включительно)
+fail_on_severity: critical
+
+# Compliance-требования (пусто — не проверяем соответствие)
+compliance: []
+
+# Дополнительные правила. В дефолтной политике оба правила про формат
+# ВЫКЛЮЧЕНЫ явно — это баланс полноты и шума: подмена расширения и сам факт
+# pickle-формата не являются находками, пока организация не потребовала
+# обратного (см. banking / government / strict).
+extra_rules:
+  # false = расхождение «расширение ↔ фактический формат» не эскалируется
+  # в отдельную находку (MLS-FMT-001). На выбор сканера ключ не влияет никак.
+  strict_format_detection: false
+  # false = формат, исполняющий код при загрузке (pickle/joblib/PyTorch/Keras),
+  # сам по себе находкой не является (MLS-FMT-002 не эмитится).
+  require_safetensors: false

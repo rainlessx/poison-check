@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Отчёт о проверке безопасности ML-моделей</title>
+    <style>
+        /* ================================================================
+           Базовые стили — деловой документ по ГОСТ Р 56939-2024
+           ================================================================ */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: "Times New Roman", "DejaVu Serif", serif;
+            font-size: 12pt;
+            line-height: 1.5;
+            color: #000000;
+        }
+
+        /* ================================================================
+           Разрывы страниц
+           ================================================================ */
+        .page-break {
+            page-break-after: always;
+        }
+
+        /* ================================================================
+           Настройки страницы A4
+           ================================================================ */
+        @page {
+            size: A4;
+            margin: 2.5cm 2cm 2cm 3cm; /* ГОСТ: левое поле 30мм */
+        }
+
+        @page :first {
+            margin: 2.5cm 2cm 2cm 3cm;
+        }
+
+        /* ================================================================
+           Заголовки
+           ================================================================ */
+        h1 {
+            font-size: 16pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            text-align: center;
+            margin-bottom: 1em;
+        }
+
+        h2 {
+            font-size: 14pt;
+            font-weight: bold;
+            margin-top: 1.5em;
+            margin-bottom: 0.5em;
+            border-bottom: 1px solid #333;
+            padding-bottom: 0.2em;
+        }
+
+        h3 {
+            font-size: 12pt;
+            font-weight: bold;
+            margin-top: 1em;
+            margin-bottom: 0.4em;
+        }
+
+        p {
+            margin-bottom: 0.5em;
+            text-align: justify;
+        }
+
+        /* ================================================================
+           Титульный лист
+           ================================================================ */
+        .title-page {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 25cm;
+            text-align: center;
+            page-break-after: always;
+        }
+
+        .title-page .stamp {
+            border: 2px solid #000;
+            padding: 0.5em 1em;
+            margin-bottom: 3em;
+            font-size: 10pt;
+            text-align: center;
+            min-width: 12em;
+        }
+
+        .title-page h1 {
+            font-size: 18pt;
+            margin: 2em 0 1em 0;
+        }
+
+        .title-page .subtitle {
+            font-size: 12pt;
+            margin-bottom: 0.3em;
+        }
+
+        .title-page .meta-block {
+            margin-top: 3em;
+            font-size: 12pt;
+            text-align: left;
+            border-top: 1px solid #333;
+            padding-top: 1em;
+            width: 80%;
+        }
+
+        .title-page .meta-block p {
+            margin-bottom: 0.4em;
+        }
+
+        /* ================================================================
+           Таблица содержания
+           ================================================================ */
+        .toc {
+            page-break-after: always;
+        }
+
+        .toc ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .toc ul li {
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px dotted #999;
+            margin-bottom: 0.4em;
+            padding-bottom: 0.2em;
+        }
+
+        /* ================================================================
+           Executive summary / краткие выводы
+           ================================================================ */
+        .summary-box {
+            border: 2px solid #333;
+            padding: 1em 1.5em;
+            margin: 1em 0 1.5em 0;
+            background-color: #f8f8f8;
+        }
+
+        .summary-stats {
+            display: flex;
+            gap: 1em;
+            flex-wrap: wrap;
+            margin-top: 0.8em;
+        }
+
+        .stat-badge {
+            border: 1px solid;
+            padding: 0.3em 0.6em;
+            font-weight: bold;
+            font-size: 11pt;
+            min-width: 6em;
+            text-align: center;
+        }
+
+        .stat-badge.critical { border-color: #cc0000; color: #cc0000; }
+        .stat-badge.high     { border-color: #ff6600; color: #ff6600; }
+        .stat-badge.medium   { border-color: #cc8800; color: #cc8800; }
+        .stat-badge.low      { border-color: #336699; color: #336699; }
+        .stat-badge.info     { border-color: #666666; color: #666666; }
+
+        .verdict-critical { color: #cc0000; font-weight: bold; font-size: 13pt; }
+        .verdict-high     { color: #ff6600; font-weight: bold; font-size: 13pt; }
+        .verdict-medium   { color: #cc8800; font-weight: bold; font-size: 13pt; }
+        .verdict-low      { color: #336699; font-weight: bold; font-size: 13pt; }
+        .verdict-safe     { color: #006600; font-weight: bold; font-size: 13pt; }
+
+        /* ================================================================
+           Таблицы
+           ================================================================ */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1em 0;
+            font-size: 10pt;
+        }
+
+        th {
+            background-color: #e0e0e0;
+            border: 1px solid #555;
+            padding: 0.4em 0.6em;
+            text-align: left;
+            font-weight: bold;
+        }
+
+        td {
+            border: 1px solid #999;
+            padding: 0.3em 0.5em;
+            vertical-align: top;
+        }
+
+        tr:nth-child(even) td {
+            background-color: #f5f5f5;
+        }
+
+        /* ================================================================
+           Карточки находок
+           ================================================================ */
+        .issue-card {
+            border: 1px solid #ccc;
+            margin-bottom: 1.5em;
+            page-break-inside: avoid;
+        }
+
+        .issue-header {
+            padding: 0.5em 0.8em;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .issue-header.critical { background-color: #cc0000; }
+        .issue-header.high     { background-color: #ff6600; }
+        .issue-header.medium   { background-color: #cc8800; }
+        .issue-header.low      { background-color: #336699; }
+        .issue-header.info     { background-color: #666666; }
+
+        .issue-body {
+            padding: 0.8em;
+        }
+
+        .issue-meta {
+            font-size: 10pt;
+            color: #444;
+            margin-bottom: 0.5em;
+        }
+
+        .issue-field {
+            margin-bottom: 0.4em;
+        }
+
+        .issue-field strong {
+            display: inline-block;
+            min-width: 10em;
+        }
+
+        /* ================================================================
+           Блок декомпилированного кода
+           ================================================================ */
+        .code-block {
+            background-color: #1e1e1e;
+            color: #d4d4d4;
+            font-family: "Courier New", "DejaVu Sans Mono", monospace;
+            font-size: 9pt;
+            padding: 0.8em 1em;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            border-left: 3px solid #cc0000;
+            margin: 0.5em 0;
+        }
+
+        .code-label {
+            font-size: 9pt;
+            color: #666;
+            font-style: italic;
+            margin-bottom: 0.2em;
+        }
+
+        /* ================================================================
+           Секция подписи
+           ================================================================ */
+        .signature-section {
+            margin-top: 3em;
+            page-break-before: always;
+        }
+
+        .signature-table {
+            width: 100%;
+        }
+
+        .signature-line {
+            border-bottom: 1px solid #000;
+            height: 2em;
+            min-width: 12em;
+        }
+
+        .signature-label {
+            font-size: 9pt;
+            color: #666;
+        }
+
+        /* ================================================================
+           Предупреждение (info-box)
+           ================================================================ */
+        .info-box {
+            border-left: 4px solid #336699;
+            padding: 0.6em 1em;
+            background-color: #eef4fb;
+            margin: 1em 0;
+            font-size: 10pt;
+        }
+
+        .warning-box {
+            border-left: 4px solid #cc8800;
+            padding: 0.6em 1em;
+            background-color: #fffbef;
+            margin: 1em 0;
+            font-size: 10pt;
+        }
+
+        /* ================================================================
+           Нижний колонтитул
+           ================================================================ */
+        @page {
+            @bottom-center {
+                content: counter(page) " из " counter(pages);
+                font-size: 9pt;
+                color: #666;
+            }
+            @bottom-right {
+                content: "poison-check — Конфиденциально";
+                font-size: 8pt;
+                color: #999;
+            }
+        }
+
+        /* ================================================================
+           Утилиты
+           ================================================================ */
+        .text-center { text-align: center; }
+        .text-right  { text-align: right; }
+        .mt-1        { margin-top: 1em; }
+        .mb-1        { margin-bottom: 1em; }
+
+        .severity-badge {
+            display: inline-block;
+            padding: 0.1em 0.4em;
+            font-weight: bold;
+            font-size: 9pt;
+            border-radius: 2px;
+            color: #fff;
+        }
+
+        .severity-badge.critical { background-color: #cc0000; }
+        .severity-badge.high     { background-color: #ff6600; }
+        .severity-badge.medium   { background-color: #cc8800; }
+        .severity-badge.low      { background-color: #336699; }
+        .severity-badge.info     { background-color: #666666; }
+
+        .references-list {
+            font-size: 9pt;
+            color: #444;
+            margin-top: 0.3em;
+        }
+
+        .compliance-tags {
+            font-size: 9pt;
+            color: #555;
+        }
+
+        .section {
+            margin-bottom: 2em;
+        }
+    </style>
+</head>
+<body>
+
+{# ============================================================ #}
+{# 1. ТИТУЛЬНЫЙ ЛИСТ                                           #}
+{# ============================================================ #}
+<div class="title-page page-break">
+
+    <div class="stamp">
+        КОНФИДЕНЦИАЛЬНО<br>
+        Экз. №&nbsp;___
+    </div>
+
+    <h1>ОТЧЁТ О ПРОВЕРКЕ БЕЗОПАСНОСТИ<br>ML-МОДЕЛЕЙ</h1>
+
+    <p class="subtitle">Статический анализ угроз в файлах ML-моделей</p>
+    <p class="subtitle">Инструмент: <strong>poison-check v{{ result.tool_version }}</strong></p>
+    <p class="subtitle">Дата проверки: <strong>{{ result.timestamp.strftime('%d.%m.%Y') }}</strong></p>
+
+    <div class="meta-block">
+        {% if client_name %}
+        <p><strong>Заказчик:</strong>&nbsp;&nbsp;{{ client_name }}</p>
+        {% endif %}
+        {% if auditor_name %}
+        <p><strong>Исполнитель:</strong>&nbsp;&nbsp;{{ auditor_name }}</p>
+        {% endif %}
+        <p><strong>Дата:</strong>&nbsp;&nbsp;{{ result.timestamp.strftime('%d.%m.%Y') }}</p>
+        <p><strong>Версия отчёта:</strong>&nbsp;&nbsp;1.0</p>
+        <p><strong>Политика:</strong>&nbsp;&nbsp;{{ result.policy }}</p>
+    </div>
+
+</div>
+
+{# ============================================================ #}
+{# 2. ОГЛАВЛЕНИЕ                                               #}
+{# ============================================================ #}
+<div class="toc page-break">
+    <h1 style="font-size:14pt;">СОДЕРЖАНИЕ</h1>
+
+    <ul style="margin-top:1.5em;">
+        <li><span>1. Краткие выводы (Executive Summary)</span><span></span></li>
+        <li><span>2. Методология сканирования</span><span></span></li>
+        <li><span>3. Проверенные файлы</span><span></span></li>
+        <li><span>4. Детализация находок по уровню опасности</span><span></span></li>
+        {% if has_decompiled %}
+        <li><span>5. Декомпилированный код</span><span></span></li>
+        {% endif %}
+        <li><span>6. Маппинг на регуляторные требования</span><span></span></li>
+        <li><span>7. Рекомендации</span><span></span></li>
+        <li><span>8. Подписи</span><span></span></li>
+    </ul>
+</div>
+
+{# ============================================================ #}
+{# 3. КРАТКИЕ ВЫВОДЫ                                           #}
+{# ============================================================ #}
+<div class="section">
+    <h2>1. Краткие выводы (Executive Summary)</h2>
+
+    <div class="summary-box">
+        <p>
+            По результатам автоматизированного статического анализа
+            {% if result.scanned_paths|length == 1 %}
+                файла <strong>{{ result.scanned_paths[0].name }}</strong>
+            {% else %}
+                <strong>{{ result.scanned_paths|length }}</strong> файлов
+            {% endif %}
+            {{ "обнаружены угрозы безопасности, требующие немедленного внимания." if summary.critical > 0 else
+               "обнаружены потенциальные проблемы безопасности." if summary.high > 0 or summary.medium > 0 else
+               "существенных угроз безопасности не обнаружено." }}
+        </p>
+
+        <p style="margin-top:0.8em;">
+            <strong>Общий вердикт:&nbsp;</strong>
+            {% if summary.critical > 0 %}
+                <span class="verdict-critical">❌ КРИТИЧЕСКАЯ УГРОЗА — использование запрещено</span>
+            {% elif summary.high > 0 %}
+                <span class="verdict-high">⚠ ВЫСОКИЙ РИСК — требует экспертной оценки</span>
+            {% elif summary.medium > 0 %}
+                <span class="verdict-medium">⚠ СРЕДНИЙ РИСК — рекомендуется дополнительная проверка</span>
+            {% elif summary.low > 0 %}
+                <span class="verdict-low">ℹ НИЗКИЙ РИСК — информационные предупреждения</span>
+            {% else %}
+                <span class="verdict-safe">✓ УГРОЗЫ НЕ ОБНАРУЖЕНЫ</span>
+            {% endif %}
+        </p>
+
+        <div class="summary-stats">
+            {% if summary.critical > 0 %}
+            <div class="stat-badge critical">КРИТИЧЕСКИЙ: {{ summary.critical }}</div>
+            {% endif %}
+            {% if summary.high > 0 %}
+            <div class="stat-badge high">ВЫСОКИЙ: {{ summary.high }}</div>
+            {% endif %}
+            {% if summary.medium > 0 %}
+            <div class="stat-badge medium">СРЕДНИЙ: {{ summary.medium }}</div>
+            {% endif %}
+            {% if summary.low > 0 %}
+            <div class="stat-badge low">НИЗКИЙ: {{ summary.low }}</div>
+            {% endif %}
+            {% if summary.info > 0 %}
+            <div class="stat-badge info">ИНФО: {{ summary.info }}</div>
+            {% endif %}
+            {% if summary.total == 0 %}
+            <div class="stat-badge" style="border-color:#006600;color:#006600;">Находок: 0</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Параметр</th>
+                <th>Значение</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Файлов проверено</td>
+                <td>{{ result.results_per_file|length }}</td>
+            </tr>
+            <tr>
+                <td>Всего находок</td>
+                <td>{{ summary.total }}</td>
+            </tr>
+            <tr>
+                <td>Максимальный уровень опасности</td>
+                <td>{{ worst_severity_label }}</td>
+            </tr>
+            <tr>
+                <td>Инструмент</td>
+                <td>poison-check v{{ result.tool_version }}</td>
+            </tr>
+            <tr>
+                <td>Политика</td>
+                <td>{{ result.policy }}</td>
+            </tr>
+            <tr>
+                <td>Дата сканирования</td>
+                <td>{{ result.timestamp.strftime('%d.%m.%Y %H:%M:%S UTC') }}</td>
+            </tr>
+            <tr>
+                <td>Время сканирования</td>
+                <td>{{ result.duration_ms | round(1) }} мс</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+{# ============================================================ #}
+{# 4. МЕТОДОЛОГИЯ                                              #}
+{# ============================================================ #}
+<div class="section">
+    <h2>2. Методология сканирования</h2>
+
+    <p>
+        Сканирование выполнено инструментом <strong>poison-check v{{ result.tool_version }}</strong>
+        методом статического анализа без исполнения кода модели.
+    </p>
+
+    <div class="info-box">
+        <strong>Принцип "читать, не исполняя":</strong> инструмент анализирует байтовое
+        содержимое файлов без вызова <code>pickle.load()</code>, <code>torch.load()</code>
+        или иных функций десериализации. Это исключает возможность активации вредоносного кода
+        в процессе проверки.
+    </div>
+
+    <h3>Применяемые техники анализа</h3>
+    <ul style="margin: 0.5em 0 0.5em 1.5em;">
+        <li>Декодирование Pickle VM — разбор opcode-потока без исполнения</li>
+        <li>Allowlist-first детекция — проверка вызовов против разрешённых модулей</li>
+        <li>Детекция CVE-паттернов — сравнение с базой известных уязвимостей</li>
+        <li>Декомпиляция pickle → Python — восстановление читаемого кода для CRITICAL/HIGH</li>
+        <li>Определение ML-контекста — выбор allowlist по фреймворку (PyTorch/sklearn/...)</li>
+        <li>Детекция встроенных исполняемых файлов (PE/ELF/Mach-O)</li>
+        <li>Детекция секретов — API-ключи, токены, пароли</li>
+        <li>Детекция сетевых IoC — URL, IP-адреса</li>
+    </ul>
+
+    <h3>Шкала уровней опасности</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Уровень</th>
+                <th>Значение</th>
+                <th>Пример</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><span class="severity-badge critical">КРИТИЧЕСКИЙ</span></td>
+                <td>Гарантированный RCE или утечка данных при загрузке модели</td>
+                <td>os.system(), subprocess.Popen(), eval()</td>
+            </tr>
+            <tr>
+                <td><span class="severity-badge high">ВЫСОКИЙ</span></td>
+                <td>Скорее всего эксплуатируемая уязвимость</td>
+                <td>Нестандартный REDUCE-вызов, неизвестный global</td>
+            </tr>
+            <tr>
+                <td><span class="severity-badge medium">СРЕДНИЙ</span></td>
+                <td>Подозрительно, требует проверки специалистом</td>
+                <td>Нестандартный модуль, нетипичный паттерн</td>
+            </tr>
+            <tr>
+                <td><span class="severity-badge low">НИЗКИЙ</span></td>
+                <td>Информационное предупреждение, низкий риск</td>
+                <td>Устаревший модуль, нерекомендуемый паттерн</td>
+            </tr>
+            <tr>
+                <td><span class="severity-badge info">ИНФО</span></td>
+                <td>Для полноты картины</td>
+                <td>Метаданные, версии библиотек</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+{# ============================================================ #}
+{# 5. СПИСОК ПРОВЕРЕННЫХ ФАЙЛОВ                                #}
+{# ============================================================ #}
+<div class="section">
+    <h2>3. Проверенные файлы</h2>
+
+    {% if files_info %}
+    <table>
+        <thead>
+            <tr>
+                <th>№</th>
+                <th>Путь к файлу</th>
+                <th>Сканер</th>
+                <th>Находок</th>
+                <th>Статус</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for fi in files_info %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td style="font-family:monospace;font-size:9pt;word-break:break-all;">{{ fi.path }}</td>
+                <td>{{ fi.scanner }}</td>
+                <td>
+                    {% if fi.issues_count == 0 %}
+                        <span style="color:#006600;">0</span>
+                    {% else %}
+                        <strong>{{ fi.issues_count }}</strong>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if fi.error %}
+                        <span style="color:#cc0000;">Ошибка: {{ fi.error }}</span>
+                    {% elif fi.issues_count == 0 %}
+                        <span style="color:#006600;">✓ Чисто</span>
+                    {% else %}
+                        <span style="color:#cc0000;">⚠ Угрозы</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>Файлы не сканировались.</p>
+    {% endif %}
+</div>
+
+{# ============================================================ #}
+{# 6. ДЕТАЛИЗАЦИЯ НАХОДОК ПО УРОВНЮ ОПАСНОСТИ                 #}
+{# ============================================================ #}
+<div class="section">
+    <h2>4. Детализация находок</h2>
+
+    {% if summary.total == 0 %}
+    <div class="info-box">
+        <strong>Угрозы не обнаружены.</strong> Все проверенные файлы прошли статический анализ
+        без выявления признаков вредоносного кода или нарушений безопасности.
+    </div>
+    {% else %}
+
+    {% for group in severity_groups %}
+    <h3>
+        <span class="severity-badge {{ group.severity }}">{{ group.label }}</span>
+        &nbsp;— {{ group.entries|length }} находок
+    </h3>
+
+    {% for item in group.entries %}
+    {% set issue = item.issue %}
+    <div class="issue-card">
+        <div class="issue-header {{ group.severity }}">
+            [{{ issue.code }}] {{ issue.message }}
+        </div>
+        <div class="issue-body">
+            <div class="issue-meta">
+                Уровень: <span class="severity-badge {{ group.severity }}">{{ group.label }}</span>
+                &nbsp;|&nbsp; Уверенность: {{ issue.confidence.value }}
+                &nbsp;|&nbsp; Файл: <code>{{ item.file_path }}</code>
+            </div>
+
+            {% if issue.location %}
+            <div class="issue-field">
+                <strong>Расположение:</strong> <code>{{ issue.location }}</code>
+            </div>
+            {% endif %}
+
+            {% if issue.why %}
+            <div class="issue-field">
+                <strong>Почему опасно:</strong> {{ issue.why }}
+            </div>
+            {% endif %}
+
+            {% if issue.details %}
+            <div class="issue-field">
+                <strong>Технические детали:</strong>
+                <ul style="margin:0.2em 0 0 1em;font-size:10pt;">
+                    {% for k, v in issue.details.items() %}
+                    <li><code>{{ k }}</code>: {{ v }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            {% if issue.remediation %}
+            <div class="issue-field" style="margin-top:0.5em;">
+                <strong>Рекомендация:</strong>
+                <span style="color:#006600;">{{ issue.remediation }}</span>
+            </div>
+            {% endif %}
+
+            {# Декомпилированный код — показываем только если есть #}
+            {% if issue.decompiled_code %}
+            <div class="issue-field" style="margin-top:0.6em;">
+                <div class="code-label">Восстановленный Python-код (декомпиляция pickle):</div>
+                <div class="code-block">{{ issue.decompiled_code }}</div>
+            </div>
+            {% endif %}
+
+            {% if issue.references %}
+            <div class="references-list" style="margin-top:0.5em;">
+                <strong>Ссылки:</strong>
+                {% for ref in issue.references %}
+                    <span>[{{ ref.type|upper }}: {{ ref.id }}]</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {% if issue.compliance_tags %}
+            <div class="compliance-tags" style="margin-top:0.3em;">
+                <strong>Compliance:</strong>
+                {% for tag in issue.compliance_tags %}
+                    <code>{{ tag }}</code>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %} {# items #}
+    {% endfor %} {# severity_groups #}
+
+    {% endif %} {# summary.total == 0 #}
+</div>
+
+{# ============================================================ #}
+{# 7. МАППИНГ НА РЕГУЛЯТОРНЫЕ ТРЕБОВАНИЯ                      #}
+{# ============================================================ #}
+<div class="section">
+    <h2>{% if has_decompiled %}6{% else %}5{% endif %}. Маппинг на регуляторные требования</h2>
+
+    {% if compliance_map %}
+    <p>На основании выявленных угроз определены следующие применимые регуляторные требования:</p>
+
+    {% for category, tags in compliance_map.items() %}
+    <h3>{{ category }}</h3>
+    <ul style="margin-left:1.5em;">
+        {% for tag in tags %}
+        <li><code>{{ tag }}</code></li>
+        {% endfor %}
+    </ul>
+    {% endfor %}
+
+    {% else %}
+    <div class="info-box">
+        Угрозы, требующие регуляторного маппинга, не обнаружены.
+    </div>
+    {% endif %}
+
+    <div class="warning-box" style="margin-top:1.5em;">
+        <strong>Стандарты и нормативные документы:</strong><br>
+        ГОСТ Р 56939-2024 «Защита информации. Разработка безопасного программного обеспечения»<br>
+        OWASP Machine Learning Security Top 10 (2023)<br>
+        БДУ ФСТЭК России — Банк данных угроз безопасности информации
+    </div>
+</div>
+
+{# ============================================================ #}
+{# 8. ОБЩИЕ РЕКОМЕНДАЦИИ                                       #}
+{# ============================================================ #}
+<div class="section">
+    <h2>{% if has_decompiled %}7{% else %}6{% endif %}. Рекомендации</h2>
+
+    {% if summary.critical > 0 or summary.high > 0 %}
+    <div class="warning-box">
+        <strong>Критические рекомендации по результатам сканирования:</strong>
+        <ul style="margin:0.5em 0 0 1.5em;">
+            <li>Немедленно прекратить использование файлов с КРИТИЧЕСКИМИ угрозами</li>
+            <li>Провести расследование источника получения модели</li>
+            <li>Пересохранить модель из исходного кода в формат SafeTensors (.safetensors)</li>
+            <li>Обновить внутреннюю политику проверки ML-моделей перед развёртыванием</li>
+        </ul>
+    </div>
+    {% endif %}
+
+    <h3>Общие рекомендации по безопасности ML-моделей</h3>
+    <ul style="margin-left:1.5em;">
+        <li>По возможности используйте формат <strong>SafeTensors</strong> вместо Pickle/PyTorch</li>
+        <li>Проверяйте все модели перед использованием в CI/CD-пайплайне</li>
+        <li>Получайте модели только из доверенных источников с проверкой хешей</li>
+        <li>Ограничьте права процессов, загружающих ML-модели</li>
+        <li>Ведите аудит загрузок моделей в системе SIEM</li>
+        <li>Регулярно обновляйте CVE-базу сканера</li>
+    </ul>
+</div>
+
+{# ============================================================ #}
+{# 9. ПОДПИСИ                                                  #}
+{# ============================================================ #}
+<div class="signature-section">
+    <h2>{% if has_decompiled %}8{% else %}7{% endif %}. Подписи</h2>
+
+    <p>Данный отчёт составлен автоматически инструментом poison-check.
+    Результаты сканирования подтверждены специалистом по информационной безопасности.</p>
+
+    <table class="signature-table" style="margin-top:2em;border:none;">
+        <tbody>
+            <tr style="border:none;">
+                <td style="border:none;width:45%;padding:0.5em 1em 0.5em 0;">
+                    <p><strong>Исполнитель:</strong></p>
+                    <p style="margin-top:1.5em;">{% if auditor_name %}{{ auditor_name }}{% else %}_________________________________{% endif %}</p>
+                    <p class="signature-label">ФИО, должность</p>
+                    <div class="signature-line" style="margin-top:2em;"></div>
+                    <p class="signature-label">Подпись</p>
+                    <p style="margin-top:1em;">Дата: ___________________</p>
+                </td>
+                <td style="border:none;width:10%;"></td>
+                <td style="border:none;width:45%;padding:0.5em 0 0.5em 1em;">
+                    <p><strong>Заказчик:</strong></p>
+                    <p style="margin-top:1.5em;">{% if client_name %}{{ client_name }}{% else %}_________________________________{% endif %}</p>
+                    <p class="signature-label">ФИО, должность</p>
+                    <div class="signature-line" style="margin-top:2em;"></div>
+                    <p class="signature-label">Подпись</p>
+                    <p style="margin-top:1em;">Дата: ___________________</p>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div style="margin-top:3em;text-align:center;font-size:9pt;color:#666;">
+        <p>Документ сгенерирован автоматически. poison-check v{{ result.tool_version }}</p>
+        <p>Дата генерации: {{ result.timestamp.strftime('%d.%m.%Y %H:%M:%S') }} UTC</p>
+    </div>
+</div>
+
+</body>
+</html>

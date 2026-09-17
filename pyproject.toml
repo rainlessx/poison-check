@@ -1,0 +1,132 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "poison-check"
+version = "0.1.0"
+description = "ML Supply Chain Security Scanner"
+requires-python = ">=3.10"
+keywords = ["security", "machine-learning", "supply-chain", "scanner", "pickle"]
+authors = [
+    { name = "poison-check contributors" },
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Information Technology",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Security",
+    "Topic :: Software Development :: Quality Assurance",
+    "Environment :: Console",
+]
+
+dependencies = [
+    "pydantic>=2.0",
+    "typer>=0.12",
+    "pyyaml>=6.0",
+    "rich>=13.0",
+    # Декомпрессия joblib-стримов (lz4/zstd). Обе библиотеки маленькие
+    # (~1-2 МБ), а без них сжатые joblib-модели невозможно распаковать
+    # и проанализировать полностью — сканер уходит в частичный обход.
+    "lz4>=4.0",
+    "zstandard>=0.21",
+    # Разбор HDF5-моделей Keras (.h5/.hdf5). Формат заявлен как поддерживаемый,
+    # а единственный путь к архитектуре такой модели (root-атрибут
+    # model_config) идёт через h5py. Без него .h5 не проверяется на Lambda-RCE
+    # (CVE-2025-1550), и вредоносная модель проходит CI-гейт как чистая —
+    # поэтому зависимость обязательная, а не extras: «поддерживаем, если
+    # повезёт» для сканера безопасности недопустимо.
+    # Нижняя граница 3.10 — первый релиз с готовыми колёсами сразу под все
+    # поддерживаемые Python (3.10/3.11/3.12); на более старых версиях pip
+    # собирал бы HDF5 из исходников (нужен libhdf5-dev), что ломает установку
+    # «только колёсами» в закрытом периметре. Верхнего пина нет: используем
+    # лишь h5py.File/attrs — API, стабильный с 3.0.
+    # Офлайн-инвариант не нарушается: колесо самодостаточно (несёт libhdf5
+    # внутри), единственная транзитивная зависимость — numpy, сети нет.
+    "h5py>=3.10",
+]
+
+[project.urls]
+Homepage = "https://github.com/rainlessx/poison-check"
+Repository = "https://github.com/rainlessx/poison-check"
+Issues = "https://github.com/rainlessx/poison-check/issues"
+
+[project.optional-dependencies]
+# PDF-отчёты по ГОСТ Р 56939-2024. Тянет тяжёлые системные библиотеки
+# (cairo/pango/gdk-pixbuf через weasyprint), поэтому отдельным extras.
+pdf = ["jinja2>=3.1", "weasyprint>=61.0"]
+# No-op алиас для обратной совместимости: h5py переведён в обязательные
+# зависимости (см. [project].dependencies), поэтому extra пуст. Оставлен, чтобы
+# `pip install poison-check[keras]` из уже существующих requirements/lock-файлов
+# не ломался и не выдавал предупреждение о неизвестном extra.
+keras = []
+# Распаковка 7z-контейнеров (nullifAI-обход). Опционально: при отсутствии
+# ContainerExtractor.extract_7z_members отдаёт graceful ContainerError.
+"7z" = ["py7zr>=0.20"]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+    "mypy>=1.10",
+    "black>=24.0",
+    "ruff>=0.4",
+    "hypothesis>=6.0",
+]
+
+[project.scripts]
+poison-check = "poison_check.cli:app"
+
+[tool.hatch.version]
+path = "poison_check/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["poison_check"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"rules"    = "poison_check/_data/rules"
+"policies" = "poison_check/_data/policies"
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "poison_check",
+    "rules",
+    "policies",
+    "pyproject.toml",
+]
+
+[tool.black]
+line-length = 88
+target-version = ["py310"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "S", "B", "A", "C4", "RET", "SIM"]
+ignore = ["S101"]
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+
+[[tool.mypy.overrides]]
+# Библиотеки без type stubs (py.typed отсутствует). lz4, zstandard и h5py
+# обязательны, py7zr опционален; для всех отсутствие импорта обрабатывается
+# через try/except ImportError, а типы приходится игнорировать.
+module = ["lz4", "lz4.frame", "zstandard", "h5py", "py7zr"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v"
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+]
