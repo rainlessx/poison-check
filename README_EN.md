@@ -2,17 +2,21 @@
 
 **English** · [Русский](README.md)
 
-A static security scanner for ML model files: it inspects the model *and its bundle* without loading them.
+A static security scanner for ML model files: it inspects the model and its bundle without loading them.
+
+ML model files can execute arbitrary code the moment they load — a well-known supply-chain attack vector. The danger hides not only in the weights file itself (pickle, `.pt`, joblib) but also in the code next to it, pulled in via `config.json` when `trust_remote_code=True`.
+
+poison-check checks both the file and the whole model bundle — **without loading or executing them** — and shows where the executable code lives. The tool reports facts for human review; it does not pass a verdict on your behalf.
 
 ---
 
-## The problem
+## How it works
 
-A model file is not just weights. The most common serialization format in the Python ecosystem is pickle (and the formats built on it — `.pt`/`.pth`, joblib, numpy object arrays). On load, pickle is not "read" but **executed**: the opcode stream can contain calls to `os.system`, `subprocess`, `eval`/`exec` and other primitives that fire the moment you call `torch.load` / `joblib.load` / `pickle.load` — before you do anything with the model. This is a classic RCE vector through the ML supply chain.
+The most common serialization format in Python is pickle (and the formats built on it — `.pt`/`.pth`, joblib, numpy object arrays). On load, pickle is not "read" but **executed**: the opcode stream can contain `os.system`, `subprocess`, `eval`/`exec` that fire the moment you call `torch.load` / `joblib.load` — before you do anything with the model.
 
-But checking the weights file alone is no longer enough. Modern models ship as a **bundle**: code lives next to the weights (`modeling_*.py`, `configuration_*.py`), and `config.json` points — via `auto_map` / `custom_pipeline` — to which of those files to import. When loaded with `trust_remote_code=True`, that code runs as ordinary Python, even if the weights themselves are in the safe `safetensors` format. The danger moves from the file into the directory, and a file scanner never sees it.
+But the weights file alone is no longer enough. Models ship as a **bundle**: code lives next to the weights (`modeling_*.py`), and `config.json` points via `auto_map` to what to import on load. With `trust_remote_code=True` that code runs as ordinary Python — even if the weights are in the safe `safetensors` format. A file scanner never sees this: the danger has moved from the file into the directory.
 
-poison-check starts from both facts: it parses the structure of every model file **without loading it** (reading bytes only, walking pickle opcodes, parsing headers), and separately checks the model **bundle** — executable code next to the weights and the references to it from `config.json`. The tool reports the constructs it finds as facts for human review; it does not pass a "malicious" verdict on your behalf.
+poison-check parses every file without loading it (reading bytes, walking opcodes, parsing headers) and separately checks the bundle — code next to the weights and the references to it from `config.json`.
 
 ---
 
